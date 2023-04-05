@@ -6,11 +6,11 @@ DocMeta.setdocmeta!(PolynomialSolutions, :DocTestSetup, :(using PolynomialSoluti
 makedocs(;
     modules=[PolynomialSolutions],
     authors="Luiz M. Faria",
-    repo="https://github.com/maltezfaria/PolynomialSolutions.jl/blob/{commit}{path}#{line}",
+    repo="https://github.com/WaveProp/PolynomialSolutions.jl/blob/{commit}{path}#{line}",
     sitename="PolynomialSolutions.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://maltezfaria.github.io/PolynomialSolutions.jl",
+        canonical="https://WaveProp.github.io/PolynomialSolutions.jl",
         edit_link="main",
         assets=String[],
     ),
