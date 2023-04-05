@@ -20,6 +20,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/maltezfaria/PolynomialSolutions.jl",
+    repo="github.com/WaveProp/PolynomialSolutions.jl",
     devbranch="main",
 )
