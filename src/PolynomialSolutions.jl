@@ -82,7 +82,8 @@ function Base.show(io::IO, p::Polynomial{N,T}) where {N,T}
     order2coeff = sort(collect(p.order2coeff))
     for (order, coeff) in order2coeff
         # first term is special case
-        if order != first(order2coeff[1])
+        first_coeff = order == first(order2coeff)[1]
+        if !first_coeff
             if coeff < 0
                 print(io, " - ")
             else
@@ -93,7 +94,7 @@ function Base.show(io::IO, p::Polynomial{N,T}) where {N,T}
         if sum(order) == 0
             print(io, coeff)
         elseif abs(coeff) != 1
-            print(io, coeff)
+            first_coeff ?  print(io, coeff) : print(io, abs(coeff))
         end
         # finally print the monomials
         for (i, o) in enumerate(order)
