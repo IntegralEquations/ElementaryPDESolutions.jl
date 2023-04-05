@@ -93,7 +93,7 @@ function Base.show(io::IO, p::Polynomial{N,T}) where {N,T}
         if sum(order) == 0
             print(io, coeff)
         elseif abs(coeff) != 1
-            print(io, abs(coeff))
+            print(io, coeff)
         end
         # finally print the monomials
         for (i, o) in enumerate(order)

@@ -17,5 +17,8 @@ using Test
 
     Q = monomial((3,1))
     @test solve_helmholtz(Q) == Polynomial(Dict((3,1)=>1,(1,1)=>-6))
+    Q = monomial((3,0))
+    P = solve_helmholtz(Q)
+    @test P == Polynomial(Dict((1,0)=>-6,(3,0)=>1))
     # TODO: more tests here
 end
