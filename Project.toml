@@ -1,0 +1,7 @@
+name = "PolynomialSolutions"
+uuid = "88a69b33-da0f-4502-8c8c-d680cf4d883b"
+authors = ["Luiz M. Faria"]
+version = "0.1.0"
+
+[compat]
+julia = "1.6"
