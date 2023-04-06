@@ -19,20 +19,51 @@ Polynomial(v::Vector{Pair{NTuple{N,Int},T}}) where {N,T} = Polynomial{N,T}(Dict(
 Polynomial(p::Pair{NTuple{N,Int},T}) where {N,T} = Polynomial{N,T}(Dict(p))
 
 # construct a monomial with coefficient 1
-monomial(θ::NTuple{N,Int}) where {N} = Polynomial(θ=>1)
+monomial(θ::NTuple{N,Int}) where {N} = Polynomial(θ=>Rational(1))
 monomial(args...) = monomial(NTuple(args))
+
+function is_homogenous(p::Polynomial{N,T}) where {N,T}
+    allequal(sum(θ) for θ in keys(p.order2coeff))
+end
+
+function drop_zeros!(p::Polynomial)
+    for (k,v) in p.order2coeff
+        if v == 0
+            delete!(p.order2coeff, k)
+        end
+    end
+    return p
+end
+
+"""
+    multiply_by_r(p::Polynomial, k::Int = 2)
+
+Mulitply a polynomial `p` by the monomial `r^k`, where `r = |𝐱|` and `k` is an
+even positive integer.
+"""
+function multiply_by_r(p::Polynomial{N,T}, k::Int) where {N,T}
+    @assert iseven(k)
+    k == 0 && return p
+    order2coeff = empty(p.order2coeff)
+    for (θ, c) in p.order2coeff
+        for d in 1:N
+            θ′ = ntuple(i-> i==d ? θ[i] + 2 : θ[i], length(θ))
+            order2coeff[θ′] = get(order2coeff, θ′, zero(T)) + c
+        end
+    end
+    q = Polynomial(order2coeff)
+    return multiply_by_r(q,k-2)
+end
 
 """
     degree(p::Polynomial)
 
-Return the (maximum) degree of the polynomial `p`.
+The largest degree of any monomial in `p`.
 """
 function degree(p::Polynomial{N,T}) where {N,T}
     deg = 0
     for θ in keys(p.order2coeff)
-        for d in 1:N
-            deg = max(deg,θ[d])
-        end
+        deg = max(deg,sum(θ))
     end
     return deg
 end
@@ -52,7 +83,9 @@ function Base.:+(p1::Polynomial{N,T}, p2::Polynomial{N,T}) where {N,T}
 end
 
 function Base.:(==)(p1::Polynomial{N,T}, p2::Polynomial{N,T}) where {N,T}
-    return p1.order2coeff == p2.order2coeff
+    q1 = deepcopy(p1) |> drop_zeros!
+    q2 = deepcopy(p2) |> drop_zeros!
+    return q1.order2coeff == q2.order2coeff
 end
 
 # multiply a polynomial by a scalar
@@ -63,7 +96,10 @@ function Base.:*(c::T, p::Polynomial{N,T}) where {N,T}
     end
     return acc
 end
-Base.:*(p::Polynomial{N,T}, c::T) where {N,T} = c * p
+
+Base.:*(c,p::Polynomial{N,T}) where {N,T} = T(c)*p
+
+Base.:*(p::Polynomial, c) = c * p
 
 function laplacian(p::Polynomial{N,T}) where {N,T}
     order2coeff = empty(p.order2coeff)
@@ -127,7 +163,7 @@ function _monomial_print(io, i, p)
         elseif p == 9
             print(io, "x⁹")
         else
-            print(io, "x", i, "^", p)
+            print(io, "x", "^", p)
         end
     elseif i == 2
         if p == 0
@@ -151,7 +187,7 @@ function _monomial_print(io, i, p)
         elseif p == 9
             print(io, "y⁹")
         else
-            print(io, "y", i, "^", p)
+            print(io, "y", "^", p)
         end
     elseif i == 3
         if p == 0
@@ -175,7 +211,7 @@ function _monomial_print(io, i, p)
         elseif p == 9
             print(io, "z⁹")
         else
-            print(io, "z", i, "^", p)
+            print(io, "z", "^", p)
         end
     else
         print(io, "x", i, "^", p)
@@ -199,9 +235,38 @@ function solve_helmholtz(Q::Polynomial)
     return P
 end
 
+"""
+    solve_helmholtz(Q::Polynomial)
+
+Return a polynomial `P` satisfying `ΔP = Q`.
+"""
+function solve_laplace(Q::Polynomial{N}) where {N}
+    n = degree(Q)
+    γ = (k,p) -> 2*(k+1)*(2k+2p+N) # γₖᵖ
+    cₖ  = 1//γ(0,n) # c₀
+    P   = cₖ*multiply_by_r(deepcopy(Q),2)
+    ΔᵏQ = deepcopy(Q)
+    m = floor(Int, n/2)
+    for k in 1:m
+        cₖ  = -cₖ/(γ(k,n-2k))
+        ΔᵏQ = laplacian(ΔᵏQ)
+        ΔP = cₖ*(multiply_by_r(ΔᵏQ,2k+2))
+        P   = P + ΔP
+    end
+    return P
+end
+
+function solve_bilaplace(Q::Polynomial{N}) where {N}
+    P′ = solve_laplace(Q)
+    P  = solve_laplace(P′)
+    return P
+end
+
 export
     Polynomial,
     monomial,
-    solve_helmholtz
+    solve_helmholtz,
+    solve_laplace,
+    solve_bilaplace
 
-end
+end # module (Polynomials)

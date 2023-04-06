@@ -1,7 +1,8 @@
 using PolynomialSolutions
 using Test
+using PolynomialSolutions: laplacian
 
-@testset "PolynomialSolutions.jl" begin
+@testset "Polynomials" begin
     p1 = Polynomial((0,0)=>1)
     p2 = Polynomial((0,0)=>2)
     @test p1+p2 == Polynomial((0,0)=>3)
@@ -9,16 +10,49 @@ using Test
 
     @test PolynomialSolutions.degree(p1) == 0
     @test PolynomialSolutions.degree(Polynomial((2,0)=>1)) == 2
-    @test PolynomialSolutions.degree(Polynomial((2,2,3)=>1)) == 3
+    @test PolynomialSolutions.degree(Polynomial((2,2,3)=>1)) == 7
 
     @test PolynomialSolutions.laplacian(Polynomial((2,0)=>1)) == Polynomial((0,0)=>2)
     @test PolynomialSolutions.laplacian(Polynomial((2,2)=>1)) == Polynomial((2,0)=>2) + Polynomial((0,2)=>2)
     @test PolynomialSolutions.laplacian(Polynomial((3,1)=>3)) == Polynomial((1,1)=>18)
 
-    Q = monomial((3,1))
-    @test solve_helmholtz(Q) == Polynomial(Dict((3,1)=>1,(1,1)=>-6))
-    Q = monomial((3,0))
-    P = solve_helmholtz(Q)
-    @test P == Polynomial(Dict((1,0)=>-6,(3,0)=>1))
-    # TODO: more tests here
+end
+
+@testset "Helmholtz" begin
+    for k in 0:3, j in 0:3, i in 0:3
+        # 2d
+        Q = monomial(i,j)
+        P = solve_helmholtz(Q)
+        @test PolynomialSolutions.laplacian(P) + P == Q
+        # 3d
+        Q = monomial(i,j,k)
+        P = solve_helmholtz(Q)
+        @test PolynomialSolutions.laplacian(P) + P == Q
+    end
+end
+
+@testset "Laplace" begin
+    for k in 0:3, j in 0:3, i in 0:3
+        # 2d
+        Q = monomial(i,j)
+        P = solve_laplace(Q)
+        @test PolynomialSolutions.laplacian(P) == Q
+        # 3d
+        Q = monomial(i,j,k)
+        P = solve_laplace(Q)
+        @test PolynomialSolutions.laplacian(P) == Q
+    end
+end
+
+@testset "Bilaplace" begin
+    for k in 0:4, j in 0:4, i in 0:4
+        # 2d
+        Q = monomial(i,j)
+        P = solve_bilaplace(Q)
+        @test laplacian(laplacian(P)) == Q
+        # 3d
+        Q = monomial(i,j,k)
+        P = solve_bilaplace(Q)
+        @test laplacian(laplacian(P)) == Q
+    end
 end
