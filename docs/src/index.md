@@ -40,7 +40,7 @@ end
 ## Laplace
 
 The function [`solve_laplace`](@ref) takes a [`Polynomial`](@ref) `Q` and
-returns the unique [`Polynomial`](@ref) `P` satisfying
+returns a [`Polynomial`](@ref) `P` satisfying
 
 ```math
     \Delta P = Q
@@ -71,7 +71,7 @@ end
 ## Bi-Laplace
 
 The function [`solve_bilaplace`](@ref) takes a [`Polynomial`](@ref) `Q` and
-returns the unique [`Polynomial`](@ref) `P` satisfying
+returns a [`Polynomial`](@ref) `P` satisfying
 
 ```math
     \Delta^2 P = Q
