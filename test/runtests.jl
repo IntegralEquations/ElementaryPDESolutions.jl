@@ -1,6 +1,6 @@
 using PolynomialSolutions
 using Test
-using PolynomialSolutions: laplacian
+using PolynomialSolutions: laplacian, divergence, gradient
 
 @testset "Polynomials" begin
     p1 = Polynomial((0,0)=>1)
@@ -12,10 +12,18 @@ using PolynomialSolutions: laplacian
     @test PolynomialSolutions.degree(Polynomial((2,0)=>1)) == 2
     @test PolynomialSolutions.degree(Polynomial((2,2,3)=>1)) == 7
 
+    @test PolynomialSolutions.derivative(Polynomial((0,0)=>1),1) == Polynomial((0,0)=>0)
+    @test PolynomialSolutions.derivative(Polynomial((1,0)=>1),1) == Polynomial((0,0)=>1)
+    @test PolynomialSolutions.derivative(Polynomial((1,0)=>1),2) == Polynomial((0,0)=>0)
+    @test PolynomialSolutions.derivative(Polynomial((1,3)=>2),2) == Polynomial((1,2)=>6)
+
     @test PolynomialSolutions.laplacian(Polynomial((2,0)=>1)) == Polynomial((0,0)=>2)
     @test PolynomialSolutions.laplacian(Polynomial((2,2)=>1)) == Polynomial((2,0)=>2) + Polynomial((0,2)=>2)
     @test PolynomialSolutions.laplacian(Polynomial((3,1)=>3)) == Polynomial((1,1)=>18)
 
+    for P in (Polynomial((2,0)=>1),Polynomial((2,2)=>1),Polynomial((3,1)=>3))
+        @test PolynomialSolutions.laplacian(P) == divergence(gradient(P))
+    end
 end
 
 @testset "Helmholtz" begin

@@ -101,6 +101,34 @@ Base.:*(c,p::Polynomial{N,T}) where {N,T} = T(c)*p
 
 Base.:*(p::Polynomial, c) = c * p
 
+"""
+    derivative(p::Polynomial, i::Int)
+
+Differentiate `p` with respect to the `i`th variable.
+"""
+function derivative(p::Polynomial{N,T},d) where {N,T}
+    @assert d ∈ 1:N
+    order2coeff = empty(p.order2coeff)
+    for (θ, c) in p.order2coeff
+        θ[d] < 1 && continue
+        θ′ = ntuple(i-> i==d ? θ[d]-1 : θ[i], N)
+        c′ = c*(θ[d])
+        order2coeff[θ′] = get(order2coeff, θ′, zero(T)) + c′
+    end
+    return Polynomial{N,T}(order2coeff)
+end
+
+"""
+    gradient(p::Polynomial)
+
+Return an `N`-tuple of the derivatives of `p` with respect to each variable.
+"""
+function gradient(p::Polynomial{N,T}) where {N,T}
+    ntuple(N) do d
+        derivative(p,d)
+    end
+end
+
 function laplacian(p::Polynomial{N,T}) where {N,T}
     order2coeff = empty(p.order2coeff)
     for (θ, c) in p.order2coeff
@@ -114,8 +142,14 @@ function laplacian(p::Polynomial{N,T}) where {N,T}
     return Polynomial{N,T}(order2coeff)
 end
 
+function divergence(P::NTuple{N,Polynomial{N,T}}) where {N,T}
+    sum(derivative(P[i],i) for i in 1:N)
+end
+
+
 function Base.show(io::IO, p::Polynomial{N,T}) where {N,T}
     order2coeff = sort(collect(p.order2coeff))
+    isempty(order2coeff) && return print(io, "0")
     for (order, coeff) in order2coeff
         # first term is special case
         first_coeff = order == first(order2coeff)[1]
