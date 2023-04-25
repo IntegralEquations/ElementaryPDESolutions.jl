@@ -19,7 +19,7 @@ Polynomial(v::Vector{Pair{NTuple{N,Int},T}}) where {N,T} = Polynomial{N,T}(Dict(
 Polynomial(p::Pair{NTuple{N,Int},T}) where {N,T} = Polynomial{N,T}(Dict(p))
 
 # construct a monomial with coefficient 1
-monomial(θ::NTuple{N,Int}) where {N} = Polynomial(θ=>Rational(1))
+monomial(θ::NTuple{N,Int}) where {N} = Polynomial(θ=>Rational(BigInt(1)))
 monomial(args...) = monomial(NTuple(args))
 
 function is_homogenous(p::Polynomial{N,T}) where {N,T}
@@ -240,10 +240,10 @@ end
 
 Return a polynomial `P` satisfying `ΔP = Q`.
 """
-function solve_laplace(Q::Polynomial{N}) where {N}
+function solve_laplace(Q::Polynomial{N,T}) where {N,T}
     n = degree(Q)
     γ = (k,p) -> 2*(k+1)*(2k+2p+N) # γₖᵖ
-    cₖ  = 1//γ(0,n) # c₀
+    cₖ  = T(1//γ(0,n)) # c₀
     P   = cₖ*multiply_by_r(deepcopy(Q),2)
     ΔᵏQ = deepcopy(Q)
     m = floor(Int, n/2)
