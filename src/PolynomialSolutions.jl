@@ -1,5 +1,7 @@
 module PolynomialSolutions
 
+using StaticArrays
+
 """
     struct Polynomial{N,T}
 
@@ -26,9 +28,14 @@ function is_homogenous(p::Polynomial{N,T}) where {N,T}
     allequal(sum(θ) for θ in keys(p.order2coeff))
 end
 
+function Base.iszero(p::Polynomial)
+    q = drop_zeros!(deepcopy(p))
+    isempty(q.order2coeff)
+end
+
 function drop_zeros!(p::Polynomial)
     for (k,v) in p.order2coeff
-        if v == 0
+        if iszero(v)
             delete!(p.order2coeff, k)
         end
     end
@@ -82,6 +89,15 @@ function Base.:+(p1::Polynomial{N,T}, p2::Polynomial{N,T}) where {N,T}
     return acc
 end
 
+function Base.:-(p::Polynomial)
+    q = deepcopy(p)
+    for (order, coeff) in q.order2coeff
+        q.order2coeff[order] = - coeff
+    end
+    return q
+end
+Base.:-(p1::Polynomial{N,T}, p2::Polynomial{N,T}) where {N,T} = p1 + (-p2)
+
 function Base.:(==)(p1::Polynomial{N,T}, p2::Polynomial{N,T}) where {N,T}
     q1 = deepcopy(p1) |> drop_zeros!
     q2 = deepcopy(p2) |> drop_zeros!
@@ -126,7 +142,7 @@ Return an `N`-tuple of the derivatives of `p` with respect to each variable.
 function gradient(p::Polynomial{N,T}) where {N,T}
     ntuple(N) do d
         derivative(p,d)
-    end
+    end |> SVector
 end
 
 function laplacian(p::Polynomial{N,T}) where {N,T}
@@ -142,7 +158,7 @@ function laplacian(p::Polynomial{N,T}) where {N,T}
     return Polynomial{N,T}(order2coeff)
 end
 
-function divergence(P::NTuple{N,Polynomial{N,T}}) where {N,T}
+function divergence(P::SVector{N,Polynomial{N,T}}) where {N,T}
     sum(derivative(P[i],i) for i in 1:N)
 end
 
@@ -253,24 +269,24 @@ function _monomial_print(io, i, p)
 end
 
 """
-    solve_helmholtz(Q::Polynomial)
+    solve_helmholtz(Q::Polynomial,k=1)
 
-Return the unique polynomial `P` satisfying `ΔP + P = Q`.
+Return the unique polynomial `P` satisfying `ΔP + k²P = Q`.
 """
-function solve_helmholtz(Q::Polynomial)
+function solve_helmholtz(Q::Polynomial;k=1)
     n = degree(Q)
     m = floor(Int, n/2)
-    P = deepcopy(Q)
-    ΔᵏQ = deepcopy(Q)
-    for k in 1:m
-        ΔᵏQ = laplacian(ΔᵏQ)
-        P   = P + (-1)^k*ΔᵏQ
+    P = Q
+    ΔⁱQ = laplacian(Q)
+    for i in 1:m
+        P   = P + (-1/k^2)^i*ΔⁱQ
+        ΔⁱQ = laplacian(ΔⁱQ) # next laplacian
     end
-    return P
+    return 1/k^2*P
 end
 
 """
-    solve_helmholtz(Q::Polynomial)
+    solve_laplace(Q::Polynomial)
 
 Return a polynomial `P` satisfying `ΔP = Q`.
 """
@@ -296,11 +312,28 @@ function solve_bilaplace(Q::Polynomial{N}) where {N}
     return P
 end
 
+function solve_stokes(Q::SVector{N,Polynomial{N,T}};μ=1) where {N,T}
+    # u = Δg - ∇ (∇ ⋅ g), p = -μ Δ (∇ ⋅ g), where g solves μΔΔg = Q
+    g = map(q->solve_bilaplace(q),Q)
+    h = -divergence(g)
+    u = μ .* (laplacian.(g) .+ gradient(h))
+    p = μ*laplacian(h)
+    return u,p
+end
+solve_stokes(Q::NTuple) = solve_stokes(SVector(Q))
+
+# function solve_elastostatic(Q::NTuple{N,Polynomial{N,T}};ρ=1,μ=1,ν=1) where {N,T}
+#     g = map(q->solve_helmholtz(solve_helmholtz(q,k2),k1),Q)
+#     u = @. 2*(1-ν)*laplacian(g) + k1^2*g - gradient(divergence(g))
+#     return P
+# end
+
 export
     Polynomial,
     monomial,
     solve_helmholtz,
     solve_laplace,
-    solve_bilaplace
+    solve_bilaplace,
+    solve_stokes
 
 end # module (Polynomials)

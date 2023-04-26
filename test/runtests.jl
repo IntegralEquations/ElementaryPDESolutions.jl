@@ -1,4 +1,5 @@
 using PolynomialSolutions
+using StaticArrays
 using Test
 using PolynomialSolutions: laplacian, divergence, gradient
 
@@ -28,14 +29,16 @@ end
 
 @testset "Helmholtz" begin
     for k in 0:3, j in 0:3, i in 0:3
-        # 2d
-        Q = monomial(i,j)
-        P = solve_helmholtz(Q)
-        @test PolynomialSolutions.laplacian(P) + P == Q
-        # 3d
-        Q = monomial(i,j,k)
-        P = solve_helmholtz(Q)
-        @test PolynomialSolutions.laplacian(P) + P == Q
+        for κ in (1//1,2//1,3//1)
+            # 2d
+            Q = monomial(i,j)
+            P = solve_helmholtz(Q;k=κ)
+            @test PolynomialSolutions.laplacian(P) + κ^2*P == Q
+            # 3d
+            Q = monomial(i,j,k)
+            P = solve_helmholtz(Q,k=κ)
+            @test PolynomialSolutions.laplacian(P) + κ^2*P == Q
+        end
     end
 end
 
@@ -62,5 +65,27 @@ end
         Q = monomial(i,j,k)
         P = solve_bilaplace(Q)
         @test laplacian(laplacian(P)) == Q
+    end
+end
+
+@testset "Stokes" begin
+    # 2d
+    I = Iterators.product(0:4,0:4)
+    J = Iterators.product(0:4,0:4)
+    for θi in I, θj in J
+        Q = SVector(monomial(θi),monomial(θj))
+        U,P = solve_stokes(Q)
+        @test laplacian.(U) - gradient(P) == Q
+        @test iszero(divergence(U))
+    end
+    # 3d
+    I = Iterators.product(0:1,0:2,0:1)
+    J = Iterators.product(0:2,0:1,0:1)
+    K = Iterators.product(0:2,0:1,0:1)
+    for θi in I, θj in J, θk in K
+        Q = SVector(monomial(θi),monomial(θj),monomial(θk))
+        U,P = solve_stokes(Q)
+        @test laplacian.(U) - gradient(P) == Q
+        @test iszero(divergence(U))
     end
 end
