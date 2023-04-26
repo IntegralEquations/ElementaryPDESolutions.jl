@@ -306,12 +306,23 @@ function solve_laplace(Q::Polynomial{N,T}) where {N,T}
     return P
 end
 
+"""
+    solve_bilaplace(Q::Polynomial)
+
+Compute a polynomial solution to `Δ²P = Q`.
+"""
 function solve_bilaplace(Q::Polynomial{N}) where {N}
     P′ = solve_laplace(Q)
     P  = solve_laplace(P′)
     return P
 end
 
+"""
+    solve_stokes(Q::SVector{N,Polynomial{N,T}};μ=1)
+
+Compute a vector of polymomials `U` and a polynomial `P` satisfying `μΔU - ∇P =
+Q` with `∇ ⋅ U = 0`.
+"""
 function solve_stokes(Q::SVector{N,Polynomial{N,T}};μ=1) where {N,T}
     # u = Δg - ∇ (∇ ⋅ g), p = -μ Δ (∇ ⋅ g), where g solves μΔΔg = Q
     g = map(q->solve_bilaplace(q),Q)

@@ -99,6 +99,25 @@ for k in 0:4, j in 0:4, i in 0:4
 end
 ```
 
+## Stokes
+
+The function [`solve_stokes`](@ref) takes an `NTuple` of [`Polynomial`](@ref)s `Q` and
+returns two [`Polynomial`](@ref)s, `U` and `P`, satisfying
+
+```math
+    \begin{align*}
+        \Delta U - \nabla P &= Q \\
+        \nabla \cdot U &= 0
+    \end{align*}
+```
+
+```@example
+using PolynomialSolutions
+Q   = (monomial(1,0),monomial(0,0))
+U,P = solve_stokes(Q)
+@show U,P
+```
+
 ## Docstrings
 
 ```@autodocs
