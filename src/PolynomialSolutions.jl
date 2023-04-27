@@ -329,9 +329,9 @@ Q` with `∇ ⋅ U = 0`.
 """
 function solve_stokes(Q::SVector{N,Polynomial{N,T}};μ=1) where {N,T}
     # u = Δg - ∇ (∇ ⋅ g), p = -μ Δ (∇ ⋅ g), where g solves μΔΔg = Q
-    g = map(q->solve_bilaplace(q),Q)
+    g = 1/μ .* map(q->solve_bilaplace(q),Q)
     h = -divergence(g)
-    u = μ .* (laplacian.(g) .+ gradient(h))
+    u = laplacian.(g) .+ gradient(h)
     p = μ*laplacian(h)
     return u,p
 end

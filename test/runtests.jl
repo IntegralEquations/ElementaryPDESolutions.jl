@@ -69,13 +69,14 @@ end
 end
 
 @testset "Stokes" begin
+    μ = 2
     # 2d
     I = Iterators.product(0:4,0:4)
     J = Iterators.product(0:4,0:4)
     for θi in I, θj in J
         Q = SVector(monomial(θi),monomial(θj))
-        U,P = solve_stokes(Q)
-        @test laplacian.(U) - gradient(P) == Q
+        U,P = solve_stokes(Q;μ)
+        @test μ * laplacian.(U) - gradient(P) == Q
         @test iszero(divergence(U))
     end
     # 3d
@@ -84,8 +85,8 @@ end
     K = Iterators.product(0:2,0:1,0:1)
     for θi in I, θj in J, θk in K
         Q = SVector(monomial(θi),monomial(θj),monomial(θk))
-        U,P = solve_stokes(Q)
-        @test laplacian.(U) - gradient(P) == Q
+        U,P = solve_stokes(Q;μ)
+        @test μ * laplacian.(U) - gradient(P) == Q
         @test iszero(divergence(U))
     end
 end
