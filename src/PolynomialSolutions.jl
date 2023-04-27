@@ -175,6 +175,10 @@ function Base.show(io::IO, p::Polynomial{N,T}) where {N,T}
             else
                 print(io, " + ")
             end
+        else
+            if abs(coeff) == 1 && coeff < 0
+                print(io, "-")
+            end
         end
         # print the coefficient if it is not one
         if sum(order) == 0
