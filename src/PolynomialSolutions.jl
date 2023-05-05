@@ -277,17 +277,18 @@ end
 
 Return the unique polynomial `P` satisfying `ΔP + k²P = Q`.
 """
-function solve_helmholtz(Q::Polynomial;k=1)
+function solve_helmholtz(Q::Polynomial,k²)
     n = degree(Q)
     m = floor(Int, n/2)
     P = Q
     ΔⁱQ = laplacian(Q)
     for i in 1:m
-        P   = P + (-1/k^2)^i*ΔⁱQ
+        P   = P + (-1/k²)^i*ΔⁱQ
         ΔⁱQ = laplacian(ΔⁱQ) # next laplacian
     end
-    return 1/k^2*P
+    return 1/k²*P
 end
+solve_helmholtz(Q::Polynomial;k=1) = solve_helmholtz(Q,k^2)
 
 """
     solve_laplace(Q::Polynomial)
@@ -337,11 +338,30 @@ function solve_stokes(Q::SVector{N,Polynomial{N,T}};μ=1) where {N,T}
 end
 solve_stokes(Q::NTuple) = solve_stokes(SVector(Q))
 
-# function solve_elastostatic(Q::NTuple{N,Polynomial{N,T}};ρ=1,μ=1,ν=1) where {N,T}
+# function solve_elastodynamics(Q::NTuple{N,Polynomial{N,T}};ρ=1,μ=1,ν=1) where {N,T}
 #     g = map(q->solve_helmholtz(solve_helmholtz(q,k2),k1),Q)
 #     u = @. 2*(1-ν)*laplacian(g) + k1^2*g - gradient(divergence(g))
 #     return P
 # end
+
+"""
+    solve_elastostatic(Q::SVector{N,Polynomial{N,T}};μ=1,ν=1)
+
+Compute a vector of polymomials `U` satisfying `μ/(1-2ν) ∇(div U) + μΔU = Q`.
+"""
+function solve_elastostatic(Q::SVector{N, Polynomial{N, T}};μ=1,ν=0) where {N,T}
+    g = 1/(2 * μ * (1 - ν)) .* map(q->solve_bilaplace(q), Q)
+    u = 2(1 - ν) * laplacian.(g) - gradient(divergence(g))
+    return u
+end
+
+function solve_maxwell(J::SVector{N, Polynomial{N, T}},ρ::Polynomial{N, T};ϵ=1,μ=1,ω=1) where {N,T}
+    k² = ω^2 * ϵ * μ
+    A = -√(μ/ϵ) * map(j->solve_helmholtz(j,k²), J)
+    φ = -1/ϵ * solve_helmholtz(ρ)
+    #E = im * ω * A - gradient(φ)
+    return A, φ
+end
 
 export
     Polynomial,
@@ -349,6 +369,8 @@ export
     solve_helmholtz,
     solve_laplace,
     solve_bilaplace,
-    solve_stokes
+    solve_stokes,
+    solve_elastostatic,
+    solve_maxwell
 
 end # module (Polynomials)

@@ -90,3 +90,26 @@ end
         @test iszero(divergence(U))
     end
 end
+
+@testset "Elastostatics" begin
+    μ = 1
+    # test set breaks when ν ≠ 0 due to floating point errors
+    ν = 0
+    # 2d
+    I = Iterators.product(0:4,0:4)
+    J = Iterators.product(0:4,0:4)
+    for θi in I, θj in J
+        Q = SVector(monomial(θi),monomial(θj))
+        U = solve_elastostatic(Q;μ,ν)
+        @test μ/(1 - 2ν) * gradient(divergence(U)) + μ * laplacian.(U) == Q
+    end
+    # 3d
+    I = Iterators.product(0:1,0:2,0:1)
+    J = Iterators.product(0:2,0:1,0:1)
+    K = Iterators.product(0:2,0:1,0:1)
+    for θi in I, θj in J, θk in K
+        Q = SVector(monomial(θi),monomial(θj),monomial(θk))
+        U = solve_elastostatic(Q;μ,ν)
+        @test μ/(1 - 2ν) * gradient(divergence(U)) + μ * laplacian.(U) == Q
+    end
+end
