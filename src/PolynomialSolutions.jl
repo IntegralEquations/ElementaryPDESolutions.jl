@@ -11,6 +11,9 @@ struct Polynomial{N,T}
     order2coeff::Dict{NTuple{N,Int},T}
 end
 
+# empty constructor
+Polynomial{N,T}() where {N,T} = Polynomial{N,T}(Dict{NTuple{N,Int},T}())
+
 # construct a polynomial from a tuple of pairs
 Polynomial(t::NTuple{<:Any,Pair{NTuple{N,Int},T}}) where {N,T} = Polynomial{N,T}(Dict(t))
 
@@ -105,13 +108,15 @@ function Base.:(==)(p1::Polynomial{N,T}, p2::Polynomial{N,T}) where {N,T}
 end
 
 # multiply a polynomial by a scalar
-function Base.:*(c::T, p::Polynomial{N,T}) where {N,T}
-    acc = deepcopy(p)
-    for (order, coeff) in acc.order2coeff
+function Base.:*(c::S, p::Polynomial{N,T}) where {S,N,T}
+    V = promote_type(S,T)
+    acc = Polynomial{N,V}()
+    for (order, coeff) in p.order2coeff
         acc.order2coeff[order] = c * coeff
     end
     return acc
 end
+
 
 Base.:*(c,p::Polynomial{N,T}) where {N,T} = T(c)*p
 

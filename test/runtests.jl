@@ -13,6 +13,9 @@ using PolynomialSolutions: laplacian, divergence, gradient
     @test PolynomialSolutions.degree(Polynomial((2,0)=>1)) == 2
     @test PolynomialSolutions.degree(Polynomial((2,2,3)=>1)) == 7
 
+    @test 2*p1 == Polynomial((0,0)=>2)
+    @test (1 + 0.2*im)*p1 == Polynomial((0,0)=>1 + 0.2*im)
+
     @test PolynomialSolutions.derivative(Polynomial((0,0)=>1),1) == Polynomial((0,0)=>0)
     @test PolynomialSolutions.derivative(Polynomial((1,0)=>1),1) == Polynomial((0,0)=>1)
     @test PolynomialSolutions.derivative(Polynomial((1,0)=>1),2) == Polynomial((0,0)=>0)
