@@ -78,8 +78,13 @@ function degree(p::Polynomial{N,T}) where {N,T}
     return deg
 end
 
-function Base.:+(p1::Polynomial{N,T}, p2::Polynomial{N,T}) where {N,T}
-    acc = deepcopy(p1)
+function Base.:+(p1::Polynomial{N,S}, p2::Polynomial{N,T}) where {N,S,T}
+    V = promote_type(S,T)
+    acc = Polynomial{N,V}()
+    # re-build the p1 elements in the promoted datatype; this is a bit wasteful..
+    for (order, coeff) in p1.order2coeff
+        acc.order2coeff[order] = coeff
+    end
     # loop over the elements of p2. If already in p1, add the coefficients,
     # otherwise add the pair
     for (order, coeff) in p2.order2coeff
@@ -99,7 +104,7 @@ function Base.:-(p::Polynomial)
     end
     return q
 end
-Base.:-(p1::Polynomial{N,T}, p2::Polynomial{N,T}) where {N,T} = p1 + (-p2)
+Base.:-(p1::Polynomial{N,S}, p2::Polynomial{N,T}) where {N,S,T} = p1 + (-p2)
 
 function Base.:(==)(p1::Polynomial{N,T}, p2::Polynomial{N,T}) where {N,T}
     q1 = deepcopy(p1) |> drop_zeros!
@@ -116,8 +121,6 @@ function Base.:*(c::S, p::Polynomial{N,T}) where {S,N,T}
     end
     return acc
 end
-
-
 Base.:*(c,p::Polynomial{N,T}) where {N,T} = T(c)*p
 
 Base.:*(p::Polynomial, c) = c * p
@@ -167,8 +170,19 @@ function divergence(P::SVector{N,Polynomial{N,T}}) where {N,T}
     sum(derivative(P[i],i) for i in 1:N)
 end
 
+function curl(P::SVector{N, Polynomial{N,T}}) where {N,T}
+    ∇P = gradient.(P)
+    if N == 2
+        curlP = SVector{3, Polynomial{N,T}}(Polynomial{N,T}(), Polynomial{N,T}(), ∇P[2][1] - ∇P[1][2])
+    elseif N == 3
+        curlP = SVector{3, Polynomial{N,T}}(∇P[3][2] - ∇P[2][3], ∇P[1][3] - ∇P[3][1], ∇P[2][1] - ∇P[1][2])
+    else
+        print("Curl not implemented for this value of N")
+    end
+    return curlP
+end
 
-function Base.show(io::IO, p::Polynomial{N,T}) where {N,T}
+function Base.show(io::IO, p::Polynomial{N,T}) where {N,T<:Real}
     order2coeff = sort(collect(p.order2coeff))
     isempty(order2coeff) && return print(io, "0")
     for (order, coeff) in order2coeff
@@ -190,6 +204,33 @@ function Base.show(io::IO, p::Polynomial{N,T}) where {N,T}
             print(io, coeff)
         elseif abs(coeff) != 1
             first_coeff ?  print(io, coeff) : print(io, abs(coeff))
+        end
+        # finally print the monomials
+        for (i, o) in enumerate(order)
+            _monomial_print(io, i, o)
+        end
+    end
+end
+
+function Base.show(io::IO, p::Polynomial{N,T}) where {N,T<:Complex}
+    order2coeff = sort(collect(p.order2coeff), by = x -> sum(x[1]))
+    isempty(order2coeff) && return print(io, "0")
+    for (order, coeff) in order2coeff
+        # first term is special case
+        first_coeff = order == first(order2coeff)[1]
+        if !first_coeff
+            print(io, " + ")
+        else
+            if coeff == -1
+                print(io, "-")
+            end
+        end
+        # print the coefficient if it is not one
+        if coeff.im == 0 && coeff != 1
+            print(io, coeff.re)
+        elseif coeff != 1
+            print(io, "(", coeff, ")")
+            #print(io, "(", coeff.re, " + ", coeff.im, "ı", ")")
         end
         # finally print the monomials
         for (i, o) in enumerate(order)
@@ -330,7 +371,7 @@ end
 """
     solve_stokes(Q::SVector{N,Polynomial{N,T}};μ=1)
 
-Compute a vector of polymomials `U` and a polynomial `P` satisfying `μΔU - ∇P =
+Compute a vector of polynomials `U` and a polynomial `P` satisfying `μΔU - ∇P =
 Q` with `∇ ⋅ U = 0`.
 """
 function solve_stokes(Q::SVector{N,Polynomial{N,T}};μ=1) where {N,T}
@@ -352,7 +393,7 @@ solve_stokes(Q::NTuple) = solve_stokes(SVector(Q))
 """
     solve_elastostatic(Q::SVector{N,Polynomial{N,T}};μ=1,ν=1)
 
-Compute a vector of polymomials `U` satisfying `μ/(1-2ν) ∇(div U) + μΔU = Q`.
+Compute a vector of polynomials `U` satisfying `μ/(1-2ν) ∇(div U) + μΔU = Q`.
 """
 function solve_elastostatic(Q::SVector{N, Polynomial{N, T}};μ=1,ν=0) where {N,T}
     g = 1/(2 * μ * (1 - ν)) .* map(q->solve_bilaplace(q), Q)
@@ -360,12 +401,20 @@ function solve_elastostatic(Q::SVector{N, Polynomial{N, T}};μ=1,ν=0) where {N,
     return u
 end
 
+"""
+    solve_maxwell(J::SVector{N,Polynomial{N,T}}, ρ::Polynomial{N, T};ϵ=1,μ=1,ω=1)
+
+Compute a pair of vectors of polynomials `E` and `H` satisfying the Maxwell system.
+"""
 function solve_maxwell(J::SVector{N, Polynomial{N, T}},ρ::Polynomial{N, T};ϵ=1,μ=1,ω=1) where {N,T}
+    #@assert divergence(J) - im*ω*ρ == 0
     k² = ω^2 * ϵ * μ
     A = -√(μ/ϵ) * map(j->solve_helmholtz(j,k²), J)
-    φ = -1/ϵ * solve_helmholtz(ρ)
-    #E = im * ω * A - gradient(φ)
-    return A, φ
+    φ = -1/ϵ * solve_helmholtz(ρ,k²)
+    E = im * ω * A - gradient(φ)
+    H = 1/μ * curl(A)
+    #return A, φ, E, H
+    return E, H
 end
 
 export
