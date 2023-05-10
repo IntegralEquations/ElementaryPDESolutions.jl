@@ -230,7 +230,7 @@ function Base.show(io::IO, p::Polynomial{N,T}) where {N,T<:Complex}
             print(io, coeff.re)
         elseif coeff != 1
             print(io, "(", coeff, ")")
-            #print(io, "(", coeff.re, " + ", coeff.im, "ı", ")")
+            #print(io, "(", coeff.re, " + ", coeff.im, "ı)")
         end
         # finally print the monomials
         for (i, o) in enumerate(order)
@@ -384,11 +384,18 @@ function solve_stokes(Q::SVector{N,Polynomial{N,T}};μ=1) where {N,T}
 end
 solve_stokes(Q::NTuple) = solve_stokes(SVector(Q))
 
-# function solve_elastodynamics(Q::NTuple{N,Polynomial{N,T}};ρ=1,μ=1,ν=1) where {N,T}
-#     g = map(q->solve_helmholtz(solve_helmholtz(q,k2),k1),Q)
-#     u = @. 2*(1-ν)*laplacian(g) + k1^2*g - gradient(divergence(g))
-#     return P
-# end
+"""
+    solve_elastodynamics(Q::SVector{N,Polynomial{N,T}};ρ=1,μ=1,ν=1/4,ω=1)
+
+Compute a vector of polynomials `U` satisfying `-μ/(1-2ν) ∇(div U) - μ ΔU - μ k₂² U = Q`.
+"""
+function solve_elastodynamics(Q::SVector{N,Polynomial{N,T}};ρ=1//1,μ=1//1,ν=1//4,ω=1//1) where {N,T}
+    k₁² = ω^2/(2*μ*(1-ν)/(ρ*(1 - 2ν)))
+    k₂² = ω^2*ρ/μ
+    g = -1/(2*μ*(1-ν))*map(q->solve_helmholtz(solve_helmholtz(q,k₁²),k₂²),Q)
+    u = 2*(1-ν)*(laplacian.(g) + k₁²*g) - gradient(divergence(g))
+    return u
+end
 
 """
     solve_elastostatic(Q::SVector{N,Polynomial{N,T}};μ=1,ν=1)
@@ -425,6 +432,7 @@ export
     solve_bilaplace,
     solve_stokes,
     solve_elastostatic,
+    solve_elastodynamics,
     solve_maxwell
 
 end # module (Polynomials)
