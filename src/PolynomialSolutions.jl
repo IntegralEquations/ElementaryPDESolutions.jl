@@ -27,7 +27,7 @@ Polynomial(p::Pair{NTuple{N,Int},T}) where {N,T} = Polynomial{N,T}(Dict(p))
 monomial(θ::NTuple{N,Int}) where {N} = Polynomial(θ=>Rational(BigInt(1)))
 monomial(args...) = monomial(NTuple(args))
 
-function is_homogenous(p::Polynomial{N,T}) where {N,T}
+function is_homogeneous(p::Polynomial{N,T}) where {N,T}
     allequal(sum(θ) for θ in keys(p.order2coeff))
 end
 
@@ -48,7 +48,7 @@ end
 """
     multiply_by_r(p::Polynomial, k::Int = 2)
 
-Mulitply a polynomial `p` by the monomial `r^k`, where `r = |𝐱|` and `k` is an
+Multiply a polynomial `p` by the monomial `r^k`, where `r = |𝐱|` and `k` is an
 even positive integer.
 """
 function multiply_by_r(p::Polynomial{N,T}, k::Int) where {N,T}
@@ -183,7 +183,7 @@ function curl(P::SVector{N, Polynomial{N,T}}) where {N,T}
 end
 
 function Base.show(io::IO, p::Polynomial{N,T}) where {N,T<:Real}
-    order2coeff = sort(collect(p.order2coeff))
+    order2coeff = sort(collect(p.order2coeff), by = x -> sum(x[1]))
     isempty(order2coeff) && return print(io, "0")
     for (order, coeff) in order2coeff
         # first term is special case
