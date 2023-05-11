@@ -143,45 +143,44 @@ end
 end
 
 @testset "Maxwell" begin
-    # TODO: parameters ≠ 1 is still broken
-    μ = 1//1
-    ϵ = 1//1
-    ω = 1//1
+    μ = 4//1
+    ϵ = 3//2
+    ω = 2//5
     I = Iterators.product(0:3, 0:2, 0:3)
     J = Iterators.product(0:1, 0:2, 0:1)
     K = Iterators.product(0:2, 0:2, 0:3)
     for θi in I, θj in J, θk in K
-            Q = (1.0 + 0*im)*SVector(monomial(θi), monomial(θj), monomial(θk))
-            # Enforce charge conservation
-            ρ = -im/ω*divergence(Q)
-            E, H = solve_maxwell(Q, ρ; ϵ=ϵ,μ=μ,ω=ω)
+        Q = (1.0 + 0*im)*SVector(monomial(θi), monomial(θj), monomial(θk))
+        # Enforce charge conservation
+        ρ = -im/ω*divergence(Q)
+        E, H = solve_maxwell(Q, ρ; ϵ=ϵ,μ=μ,ω=ω)
 
-            poly1 = ϵ*divergence(E) - ρ
-            order2coeff = collect(poly1.order2coeff)
+        poly1 = ϵ*divergence(E) - ρ
+        order2coeff = collect(poly1.order2coeff)
+        for (order, coeff) in order2coeff
+            @test abs(coeff) < 10^(-14)
+        end
+
+        poly2 = im*ω*ϵ*E + curl(H) - Q
+        for poly in poly2
+            order2coeff = collect(poly.order2coeff)
             for (order, coeff) in order2coeff
                 @test abs(coeff) < 10^(-14)
             end
+        end
 
-            poly2 = im*ω*ϵ*E + curl(H) - Q
-            for poly in poly2
-                order2coeff = collect(poly.order2coeff)
-                for (order, coeff) in order2coeff
-                    @test abs(coeff) < 10^(-14)
-                end
-            end
-
-            poly3 = -im*ω*μ*H + curl(E)
-            for poly in poly3
-                order2coeff = collect(poly.order2coeff)
-                for (order, coeff) in order2coeff
-                    @test abs(coeff) < 10^(-14)
-                end
-            end
-
-            poly4 = μ*divergence(H)
-            order2coeff = collect(poly4.order2coeff)
+        poly3 = -im*ω*μ*H + curl(E)
+        for poly in poly3
+            order2coeff = collect(poly.order2coeff)
             for (order, coeff) in order2coeff
                 @test abs(coeff) < 10^(-14)
             end
+        end
+
+        poly4 = μ*divergence(H)
+        order2coeff = collect(poly4.order2coeff)
+        for (order, coeff) in order2coeff
+            @test abs(coeff) < 10^(-14)
+        end
     end
 end
