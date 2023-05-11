@@ -28,6 +28,26 @@ using PolynomialSolutions: laplacian, divergence, gradient, curl
     for P in (Polynomial((2,0)=>1),Polynomial((2,2)=>1),Polynomial((3,1)=>3))
         @test PolynomialSolutions.laplacian(P) == divergence(gradient(P))
     end
+
+    @test (PolynomialSolutions.curl(
+        SVector((
+            Polynomial((3,1,1)=>1),
+            Polynomial((1,2,5)=>1),
+            Polynomial((1,2,3)=>1))))
+        ==
+        SVector((
+            Polynomial(((1,1,3)=>2,(1,2,4)=>-5)),
+            Polynomial(((3,1,0)=>1,(0,2,3)=>-1)),
+            Polynomial(((0,2,5)=>1,(3,0,1)=>-1))))
+        )
+    for k in 0:4, j in 0:4, i in 0:4
+        P = SVector((monomial(i, j, k), monomial(j,i,k), monomial(k,j,i)))
+        @test iszero(PolynomialSolutions.divergence(PolynomialSolutions.curl(P)))
+        Q = monomial(i, j, k)
+        @test iszero(PolynomialSolutions.curl(PolynomialSolutions.gradient(Q)))
+        @test (PolynomialSolutions.curl(PolynomialSolutions.curl(P)) ==
+            PolynomialSolutions.gradient(PolynomialSolutions.divergence(P)) - laplacian.(P))
+    end
 end
 
 @testset "Helmholtz" begin
