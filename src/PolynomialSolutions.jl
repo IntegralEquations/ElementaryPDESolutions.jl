@@ -411,7 +411,8 @@ end
 """
     solve_maxwell(J::SVector{N,Polynomial{N,T}}, ρ::Polynomial{N, T};ϵ=1,μ=1,ω=1)
 
-Compute a pair of vectors of polynomials `E` and `H` satisfying the Maxwell system.
+Compute a pair of vectors of polynomials `E` and `H` satisfying the Maxwell system. Also returns
+the polynomial vector potential `A` and scalar potential `φ`.
 """
 function solve_maxwell(J::SVector{N, Polynomial{N, T}},ρ::Polynomial{N, T};ϵ=1,μ=1,ω=1) where {N,T}
     #@assert divergence(J) - im*ω*ρ == 0
@@ -420,7 +421,8 @@ function solve_maxwell(J::SVector{N, Polynomial{N, T}},ρ::Polynomial{N, T};ϵ=1
     φ = -1/ϵ * solve_helmholtz(ρ,k²)
     E = im * ω * A - gradient(φ)
     H = 1/μ * curl(A)
-    return E, H
+    #return E, H
+    return E, H, A, φ
 end
 
 export

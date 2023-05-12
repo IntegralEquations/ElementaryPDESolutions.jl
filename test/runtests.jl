@@ -173,7 +173,7 @@ end
         Q = (1.0 + 0*im)*SVector(monomial(θi), monomial(θj), monomial(θk))
         # Enforce charge conservation
         ρ = -im/ω*divergence(Q)
-        E, H = solve_maxwell(Q, ρ; ϵ=ϵ,μ=μ,ω=ω)
+        E, H, A, φ = solve_maxwell(Q, ρ; ϵ=ϵ,μ=μ,ω=ω)
 
         poly1 = ϵ*divergence(E) - ρ
         order2coeff = collect(poly1.order2coeff)
@@ -200,6 +200,13 @@ end
         poly4 = μ*divergence(H)
         order2coeff = collect(poly4.order2coeff)
         for (order, coeff) in order2coeff
+            @test abs(coeff) < 10^(-14)
+        end
+
+        # Test the gauge condition
+        poly5 = divergence(A) - im*ω*ϵ*μ*φ
+        polydata = collect(poly5.order2coeff)
+        for (order, coeff) in polydata
             @test abs(coeff) < 10^(-14)
         end
     end
