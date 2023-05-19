@@ -1,7 +1,7 @@
 using PolynomialSolutions
 using StaticArrays
 using Test
-using PolynomialSolutions: laplacian, divergence, gradient, curl, convert_coeffs
+using PolynomialSolutions: laplacian, divergence, gradient, curl, convert_coefs
 
 @testset "Polynomials" begin
     p1 = Polynomial((0,0)=>1)
@@ -13,7 +13,7 @@ using PolynomialSolutions: laplacian, divergence, gradient, curl, convert_coeffs
     p = Polynomial([(1,0)=>1,(2,1)=>-1]) # x - x²y
     @test @inferred p((0.1,0)) == 0.1
     @test @inferred p((0.1,2)) == 0.1 - 0.1^2*2
-    q = convert_coeffs(p,Float64)
+    q = convert_coefs(p,Float64)
     @test @inferred q((0.1,0)) == 0.1
     @test @inferred q((0.1,2)) == 0.1 - 0.1^2*2
     @test typeof(p) == Polynomial{2,Int64}

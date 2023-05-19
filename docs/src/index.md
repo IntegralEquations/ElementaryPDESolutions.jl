@@ -4,122 +4,81 @@ CurrentModule = PolynomialSolutions
 
 # PolynomialSolutions
 
-Generate polynomial solutions to certain PDEs given a polynomial source term.
+*Compute polynomial solutions to certain PDEs given a polynomial source term.*
 
-## Helmholtz
+## Overview 
 
-The function [`solve_helmholtz`](@ref) takes a [`Polynomial`](@ref) `Q` and
-returns the unique [`Polynomial`](@ref) `P` satisfying
-
-```math
-    \Delta P + P = Q
-```
-
-Some solutions in 2D:
-
-```@example
-using PolynomialSolutions
-for j in 0:4, i in 0:4
-    Q = monomial(i,j)
-    P = solve_helmholtz(Q)
-    @show P, Q
-end
-```
-
-And some solutions in 3D:
-
-```@example
-using PolynomialSolutions
-for k in 0:4, j in 0:4, i in 0:4
-    Q = monomial(i,j,k)
-    P = solve_helmholtz(Q)
-    @show P, Q
-end
-```
-
-## Laplace
-
-The function [`solve_laplace`](@ref) takes a [`Polynomial`](@ref) `Q` and
-returns a [`Polynomial`](@ref) `P` satisfying
+This package provides functionality for solving
 
 ```math
-    \Delta P = Q
+    \mathcal{L}P = Q,
 ```
 
-Some solutions in 2D:
+where `Q` is a source term of [`Polynomial`](@ref) type (or a `NTuple` of
+polynomials for vector-valued problems), `P` is the sought polynomial solution, and
+$\mathcal{L}$ is a certain (linear) constant coefficient differential operator.
 
-```@example
-using PolynomialSolutions
-for j in 0:4, i in 0:4
-    Q = monomial(i,j)
-    P = solve_laplace(Q)
-    @show P, Q
-end
+A typical use case consists of creating a polynomial `Q`
+
+```@repl simple-usecase
+using PolynomialSolutions;
+Q = Polynomial([(1,2)=>2, (3,0)=>-1])
 ```
 
-And some solutions in 3D:
+and calling the desired method to obtain `P`:
 
-```@example
-using PolynomialSolutions
-for k in 0:4, j in 0:4, i in 0:4
-    Q = monomial(i,j,k)
-    P = solve_laplace(Q)
-    @show P, Q
-end
+```@repl simple-usecase
+P = solve_helmholtz(Q;k=1)
 ```
 
-## Bi-Laplace
+Note that `P` can be used as function:
 
-The function [`solve_bilaplace`](@ref) takes a [`Polynomial`](@ref) `Q` and
-returns a [`Polynomial`](@ref) `P` satisfying
-
-```math
-    \Delta^2 P = Q
+```@repl simple-usecase
+P((0.1,0.2)) # functor interface
 ```
 
-Some solutions in 2D:
+The following PDEs are currently implemented (see their specific [Docstrings](@ref) for
+further details):
 
-```@example
-using PolynomialSolutions
-for j in 0:4, i in 0:4
-    Q = monomial(i,j)
-    P = solve_bilaplace(Q)
-    @show P, Q
-end
+- [`solve_laplace`](@ref)
+- [`solve_helmholtz`](@ref)
+- [`solve_bilaplace`](@ref)
+- [`solve_stokes`](@ref)
+- [`solve_elastostatic`](@ref)
+- [`solve_elastodynamics`](@ref)
+- [`solve_maxwell`](@ref)
+
+## Coefficient type, precision, and conversions
+
+The type of coefficients in the polynomial solution `P` is inferred from both
+the type of the coefficients of the input polynomial `Q`, and from the parameter
+types (e.g. the type of `k` in [`solve_helmholtz`](@ref)). In the presence of
+floating point errors, this means that the computed coefficients may be inexact:
+
+```@repl coefficients
+using PolynomialSolutions;
+Q = Polynomial((2,2)=>1)
+P = solve_helmholtz(Q;k=3)
 ```
 
-And some solutions in 3D:
+The recursive algorithm in `solve_helmholtz` performs repeated divisions by
+`k²`; thus, passing a rational types yields an exact result in this case:
 
-```@example
-using PolynomialSolutions
-for k in 0:4, j in 0:4, i in 0:4
-    Q = monomial(i,j,k)
-    P = solve_bilaplace(Q)
-    @show P, Q
-end
+```@repl coefficients
+Q = Polynomial((3,2)=>big(1//1))
+P = solve_helmholtz(Q;k=3//1)
 ```
 
-## Stokes
+You can still convert the coefficients back to e.g. a floating point type:
 
-The function [`solve_stokes`](@ref) takes an `NTuple` of [`Polynomial`](@ref)s `Q` and
-returns two [`Polynomial`](@ref)s, `U` and `P`, satisfying
-
-```math
-    \begin{align*}
-        \Delta U - \nabla P &= Q \\
-        \nabla \cdot U &= 0
-    \end{align*}
+```@repl coefficients
+convert(Polynomial{2,Float64},P)
 ```
 
-```@example
-using PolynomialSolutions
-Q   = (monomial(1,0),monomial(0,0))
-U,P = solve_stokes(Q)
-@show U,P
-```
+Alternatively, you can use intervals to obtain rigorous bounds on the coefficients:
 
-## Docstrings
-
-```@autodocs
-Modules = [PolynomialSolutions]
+```@repl coefficients
+using IntervalArithmetic
+Q = Polynomial((3,2)=>1)
+P = solve_helmholtz(Q;k=3..3)
 ```

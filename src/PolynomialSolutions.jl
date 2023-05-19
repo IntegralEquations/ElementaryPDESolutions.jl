@@ -1,11 +1,41 @@
 module PolynomialSolutions
 
+using LinearAlgebra
 using StaticArrays
 
 """
     struct Polynomial{N,T}
 
 A polynomial in `N` variables with coefficients of type `T`.
+
+The functor interface is implemented, so that `p(x)` evaluates the polynomial.
+For performance reasons, `x` is expected to be an `Tuple` (or `SVector`).
+
+# Examples
+
+A polynomial with a single term can be created by passing a pair mapping the
+order to the coefficient:
+
+```jldoctest; output = false
+julia> Polynomial((1,1)=>2)
+2xy
+```
+
+When multiple terms are present, they must be passed as vector (or tuple) of pairs:
+
+```jldoctest
+julia> Polynomial([(1,1)=>2, (0,1)=>-1])
+-y + 2xy
+```
+
+The spatial dimension is automatically inferred from the length of the order
+tuple:
+
+```jldoctest
+julia> Polynomial((1,1,1)=>2)
+2xyz
+```
+
 """
 struct Polynomial{N,T}
     order2coeff::Dict{NTuple{N,Int},T}
@@ -23,10 +53,18 @@ Polynomial(v::Vector{Pair{NTuple{N,Int},T}}) where {N,T} = Polynomial{N,T}(Dict(
 # construct a polynomial from a single pair
 Polynomial(p::Pair{NTuple{N,Int},T}) where {N,T} = Polynomial{N,T}(Dict(p))
 
-# construct a monomial with coefficient 1
-monomial(θ::NTuple{N,Int}) where {N} = Polynomial(θ=>Rational(BigInt(1)))
-monomial(args...) = monomial(NTuple(args))
+# functor interface
+(p::Polynomial{N})(x::SVector{N}) where {N} = sum(c* prod(x.^θ) for (θ,c) in p.order2coeff)
+(p::Polynomial)(x::Tuple) = p(SVector(x))
+(p::Polynomial{1})(x::Number) = p(SVector(x))
+(p::Polynomial)(x) = error("Expected a tuple or a static vector for argument, got $(typeof(x))")
 
+"""
+    is_homogeneous(p::Polynomial)
+
+Return `true` if `p` is homogeneous, i.e. if all the monomials in `p` have the
+same degree.
+"""
 function is_homogeneous(p::Polynomial{N,T}) where {N,T}
     allequal(sum(θ) for θ in keys(p.order2coeff))
 end
@@ -36,13 +74,18 @@ function Base.iszero(p::Polynomial)
     isempty(q.order2coeff)
 end
 
-function drop_zeros!(p::Polynomial)
-    for (k,v) in p.order2coeff
-        if iszero(v)
-            delete!(p.order2coeff, k)
+"""
+    drop_zeros!(q::Polynomial,tol=0,p=2)
+
+Drop all coefficients in `q` for which the `norm(p,2) ≤ tol`.
+"""
+function drop_zeros!(q::Polynomial,tol=0,p=2)
+    for (k,v) in q.order2coeff
+        if norm(v,p) ≤ tol
+            delete!(q.order2coeff, k)
         end
     end
-    return p
+    return q
 end
 
 """
@@ -79,7 +122,7 @@ function degree(p::Polynomial{N,T}) where {N,T}
 end
 
 function Base.:+(p1::Polynomial{N,S}, p2::Polynomial{N,T}) where {N,S,T}
-    V = promote_type(S,T)
+    V   = promote_type(S,T)
     acc = Polynomial{N,V}()
     # re-build the p1 elements in the promoted datatype; this is a bit wasteful..
     for (order, coeff) in p1.order2coeff
@@ -106,10 +149,8 @@ function Base.:-(p::Polynomial)
 end
 Base.:-(p1::Polynomial{N,S}, p2::Polynomial{N,T}) where {N,S,T} = p1 + (-p2)
 
-function Base.:(==)(p1::Polynomial{N,T}, p2::Polynomial{N,T}) where {N,T}
-    q1 = deepcopy(p1) |> drop_zeros!
-    q2 = deepcopy(p2) |> drop_zeros!
-    return q1.order2coeff == q2.order2coeff
+function Base.:(==)(p1::Polynomial{N}, p2::Polynomial{M}) where {N,M}
+    N == M ? iszero(p1-p2) : false
 end
 
 # multiply a polynomial by a scalar
@@ -121,9 +162,23 @@ function Base.:*(c::S, p::Polynomial{N,T}) where {S,N,T}
     end
     return acc
 end
-Base.:*(c,p::Polynomial{N,T}) where {N,T} = T(c)*p
-
 Base.:*(p::Polynomial, c) = c * p
+
+"""
+    convert_coefs(p::Polynomial, T)
+
+Return a version of `p` where the coefficients have been converted to type `T`
+(is such a conversion is possible).
+"""
+function convert_coefs(p::Polynomial{N,S}, ::Type{T}) where {N,S,T}
+    q = Polynomial{N,T}()
+    for (order, coeff) in p.order2coeff
+        q.order2coeff[order] = T(coeff)
+    end
+    return q
+end
+
+Base.convert(::Type{Polynomial{N,T}}, p::Polynomial{N,S}) where {N,T,S} = convert_coefs(p, T)
 
 """
     derivative(p::Polynomial, i::Int)
@@ -182,6 +237,23 @@ function curl(P::SVector{N, Polynomial{N,T}}) where {N,T}
     return curlP
 end
 
+# general show
+function Base.show(io::IO, p::Polynomial{N,T}) where {N,T}
+    order2coeff = sort(collect(p.order2coeff), by = x -> sum(x[1]))
+    isempty(order2coeff) && return print(io, zero(T))
+    for (order, coeff) in order2coeff
+        # first term is special case
+        order == first(order2coeff)[1] || print(io, " + ")
+        # print the coefficient
+        print(io, "(", coeff, ")")
+        # finally print the monomials
+        for (i, o) in enumerate(order)
+            _print_variable(io, i, o)
+        end
+    end
+end
+
+# adapt show to reals
 function Base.show(io::IO, p::Polynomial{N,T}) where {N,T<:Real}
     order2coeff = sort(collect(p.order2coeff), by = x -> sum(x[1]))
     isempty(order2coeff) && return print(io, "0")
@@ -207,11 +279,12 @@ function Base.show(io::IO, p::Polynomial{N,T}) where {N,T<:Real}
         end
         # finally print the monomials
         for (i, o) in enumerate(order)
-            _monomial_print(io, i, o)
+            _print_variable(io, i, o)
         end
     end
 end
 
+# adapt show to complex
 function Base.show(io::IO, p::Polynomial{N,T}) where {N,T<:Complex}
     order2coeff = sort(collect(p.order2coeff), by = x -> sum(x[1]))
     isempty(order2coeff) && return print(io, "0")
@@ -234,13 +307,13 @@ function Base.show(io::IO, p::Polynomial{N,T}) where {N,T<:Complex}
         end
         # finally print the monomials
         for (i, o) in enumerate(order)
-            _monomial_print(io, i, o)
+            _print_variable(io, i, o)
         end
     end
 end
 
 # verbose code for pretty printing of monomials using unicode
-function _monomial_print(io, i, p)
+function _print_variable(io, i, p)
     if i == 1
         if p == 0
             print(io, "")
@@ -319,7 +392,7 @@ function _monomial_print(io, i, p)
 end
 
 """
-    solve_helmholtz(Q::Polynomial,k=1)
+    solve_helmholtz(Q::Polynomial;k=1)
 
 Return the unique polynomial `P` satisfying `ΔP + k²P = Q`.
 """
@@ -339,12 +412,13 @@ solve_helmholtz(Q::Polynomial;k=1) = solve_helmholtz(Q,k^2)
 """
     solve_laplace(Q::Polynomial)
 
-Return a polynomial `P` satisfying `ΔP = Q`.
+Return a polynomial `P` satisfying `ΔP = Q`. `Q` is required to be homogeneous.
 """
 function solve_laplace(Q::Polynomial{N,T}) where {N,T}
+    @assert is_homogeneous(Q) "source term `Q` must be a homogeneous polynomial"
     n = degree(Q)
-    γ = (k,p) -> 2*(k+1)*(2k+2p+N) # γₖᵖ
-    cₖ  = T(1//γ(0,n)) # c₀
+    γ = (k,p) -> big(2*(k+1)*(2k+2p+N)) # γₖᵖ
+    cₖ  = 1//γ(0,n) # c₀
     P   = cₖ*multiply_by_r(deepcopy(Q),2)
     ΔᵏQ = deepcopy(Q)
     m = floor(Int, n/2)
@@ -360,7 +434,7 @@ end
 """
     solve_bilaplace(Q::Polynomial)
 
-Compute a polynomial solution to `Δ²P = Q`.
+Compute a polynomial solution to `Δ²P = Q`. `Q` is required to be homogeneous.
 """
 function solve_bilaplace(Q::Polynomial{N}) where {N}
     P′ = solve_laplace(Q)
@@ -373,8 +447,9 @@ end
 
 Compute a vector of polynomials `U` and a polynomial `P` satisfying `μΔU - ∇P =
 Q` with `∇ ⋅ U = 0`.
+```
 """
-function solve_stokes(Q::SVector{N,Polynomial{N,T}};μ=1) where {N,T}
+function solve_stokes(Q::SVector{N,Polynomial{N,T}};μ=1//1) where {N,T}
     # u = Δg - ∇ (∇ ⋅ g), p = -μ Δ (∇ ⋅ g), where g solves μΔΔg = Q
     g = 1/μ .* map(q->solve_bilaplace(q),Q)
     h = -divergence(g)
@@ -382,12 +457,13 @@ function solve_stokes(Q::SVector{N,Polynomial{N,T}};μ=1) where {N,T}
     p = μ*laplacian(h)
     return u,p
 end
-solve_stokes(Q::NTuple) = solve_stokes(SVector(Q))
+solve_stokes(Q::NTuple;kwargs...) = solve_stokes(SVector(Q);kwargs...)
 
 """
     solve_elastodynamics(Q::SVector{N,Polynomial{N,T}};ρ=1,μ=1,ν=1/4,ω=1)
 
-Compute a vector of polynomials `U` satisfying `-μ/(1-2ν) ∇(div U) - μ ΔU - μ k₂² U = Q`.
+Compute a vector of polynomials `U` satisfying `-μ/(1-2ν) ∇(div U) - μ ΔU - μ
+k₂² U = Q`.
 """
 function solve_elastodynamics(Q::SVector{N,Polynomial{N,T}};ρ=1//1,μ=1//1,ν=1//4,ω=1//1) where {N,T}
     k₁² = ω^2/(2*μ*(1-ν)/(ρ*(1 - 2ν)))
@@ -411,8 +487,9 @@ end
 """
     solve_maxwell(J::SVector{N,Polynomial{N,T}}, ρ::Polynomial{N, T};ϵ=1,μ=1,ω=1)
 
-Compute a pair of vectors of polynomials `E` and `H` satisfying the Maxwell system. Also returns
-the polynomial vector potential `A` and scalar potential `φ`.
+Compute a pair of vectors of polynomials `E` and `H` satisfying the Maxwell
+system. Also returns the polynomial vector potential `A` and scalar potential
+`φ`.
 """
 function solve_maxwell(J::SVector{N, Polynomial{N, T}},ρ::Polynomial{N, T};ϵ=1,μ=1,ω=1) where {N,T}
     #@assert divergence(J) - im*ω*ρ == 0
@@ -424,10 +501,14 @@ function solve_maxwell(J::SVector{N, Polynomial{N, T}},ρ::Polynomial{N, T};ϵ=1
     #return E, H
     return E, H, A, φ
 end
+function solve_maxwell(J::SVector{N, Polynomial{N, T}},ρ::Polynomial{N, S};kwargs...) where {N,T,S}
+    TS = promote_type(T,S)
+    solve_maxwell(map(j->convert(Polynomial{N,TS},j),J),convert(Polynomial{N,TS},ρ);kwargs...)
+end
 
 export
     Polynomial,
-    monomial,
+    convert_coefs,
     solve_helmholtz,
     solve_laplace,
     solve_bilaplace,
