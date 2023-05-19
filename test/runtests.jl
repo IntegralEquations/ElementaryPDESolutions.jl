@@ -1,13 +1,24 @@
 using PolynomialSolutions
 using StaticArrays
 using Test
-using PolynomialSolutions: laplacian, divergence, gradient, curl
+using PolynomialSolutions: laplacian, divergence, gradient, curl, convert_coeffs
 
 @testset "Polynomials" begin
     p1 = Polynomial((0,0)=>1)
     p2 = Polynomial((0,0)=>2)
     @test p1+p2 == Polynomial((0,0)=>3)
     @test 5*p1 == Polynomial((0,0)=>5)
+    @test @inferred p1((0.1,0)) == 1
+
+    p = Polynomial([(1,0)=>1,(2,1)=>-1]) # x - x²y
+    @test @inferred p((0.1,0)) == 0.1
+    @test @inferred p((0.1,2)) == 0.1 - 0.1^2*2
+    q = convert_coeffs(p,Float64)
+    @test @inferred q((0.1,0)) == 0.1
+    @test @inferred q((0.1,2)) == 0.1 - 0.1^2*2
+    @test typeof(p) == Polynomial{2,Int64}
+    @test typeof(q) == Polynomial{2,Float64}
+
 
     @test PolynomialSolutions.degree(p1) == 0
     @test PolynomialSolutions.degree(Polynomial((2,0)=>1)) == 2
@@ -41,9 +52,9 @@ using PolynomialSolutions: laplacian, divergence, gradient, curl
             Polynomial(((0,2,5)=>1,(3,0,1)=>-1))))
         )
     for k in 0:4, j in 0:4, i in 0:4
-        P = SVector((monomial(i, j, k), monomial(j,i,k), monomial(k,j,i)))
+        P = SVector((Polynomial((i, j, k)=>1), Polynomial((j,i,k)=>1), Polynomial((k,j,i)=>1)))
         @test iszero(PolynomialSolutions.divergence(PolynomialSolutions.curl(P)))
-        Q = monomial(i, j, k)
+        Q = Polynomial((i, j, k)=>1)
         @test iszero(PolynomialSolutions.curl(PolynomialSolutions.gradient(Q)))
         @test (PolynomialSolutions.curl(PolynomialSolutions.curl(P)) ==
             PolynomialSolutions.gradient(PolynomialSolutions.divergence(P)) - laplacian.(P))
@@ -54,11 +65,11 @@ end
     for k in 0:3, j in 0:3, i in 0:3
         for κ in (1//1,2//1,3//1)
             # 2d
-            Q = monomial(i,j)
-            P = solve_helmholtz(Q;k=κ)
+            Q = Polynomial((i,j)=>1//1)
+            P = @inferred solve_helmholtz(Q;k=κ)
             @test PolynomialSolutions.laplacian(P) + κ^2*P == Q
             # 3d
-            Q = monomial(i,j,k)
+            Q = Polynomial((i,j,k)=>1//1)
             P = solve_helmholtz(Q,k=κ)
             @test PolynomialSolutions.laplacian(P) + κ^2*P == Q
         end
@@ -68,24 +79,27 @@ end
 @testset "Laplace" begin
     for k in 0:3, j in 0:3, i in 0:3
         # 2d
-        Q = monomial(i,j)
+        Q = Polynomial((i,j)=>1//1)
         P = solve_laplace(Q)
         @test PolynomialSolutions.laplacian(P) == Q
         # 3d
-        Q = monomial(i,j,k)
+        Q = Polynomial((i,j,k)=>1//1)
         P = solve_laplace(Q)
         @test PolynomialSolutions.laplacian(P) == Q
     end
+    # test that you cannot pass an inhomogenous polynomials
+    Q = Polynomial([(0,0)=>1,(1,0)=>2,(0,1)=>3])
+    @test_throws AssertionError solve_laplace(Q)
 end
 
 @testset "Bilaplace" begin
     for k in 0:4, j in 0:4, i in 0:4
         # 2d
-        Q = monomial(i,j)
+        Q = Polynomial((i,j)=>1//1)
         P = solve_bilaplace(Q)
         @test laplacian(laplacian(P)) == Q
         # 3d
-        Q = monomial(i,j,k)
+        Q = Polynomial((i,j,k)=>1//1)
         P = solve_bilaplace(Q)
         @test laplacian(laplacian(P)) == Q
     end
@@ -97,7 +111,7 @@ end
     I = Iterators.product(0:4,0:4)
     J = Iterators.product(0:4,0:4)
     for θi in I, θj in J
-        Q = SVector(monomial(θi),monomial(θj))
+        Q = SVector(Polynomial(θi=>1//1),Polynomial(θj=>1//1))
         U,P = solve_stokes(Q;μ)
         @test μ * laplacian.(U) - gradient(P) == Q
         @test iszero(divergence(U))
@@ -107,7 +121,7 @@ end
     J = Iterators.product(0:2,0:1,0:1)
     K = Iterators.product(0:2,0:1,0:1)
     for θi in I, θj in J, θk in K
-        Q = SVector(monomial(θi),monomial(θj),monomial(θk))
+        Q = SVector(Polynomial(θi=>1//1),Polynomial(θj=>1//1),Polynomial(θk=>1//1))
         U,P = solve_stokes(Q;μ)
         @test μ * laplacian.(U) - gradient(P) == Q
         @test iszero(divergence(U))
@@ -115,13 +129,13 @@ end
 end
 
 @testset "Elastostatics" begin
-    μ = 1//1
-    ν = 3//4
+    μ = 1//2
+    ν = 3//8
     # 2d
     I = Iterators.product(0:4,0:4)
     J = Iterators.product(0:4,0:4)
     for θi in I, θj in J
-        Q = SVector(monomial(θi),monomial(θj))
+        Q = SVector(Polynomial(θi=>1//1),Polynomial(θj=>1//1))
         U = solve_elastostatic(Q;μ,ν)
         @test μ/(1 - 2ν) * gradient(divergence(U)) + μ * laplacian.(U) == Q
     end
@@ -130,7 +144,7 @@ end
     J = Iterators.product(0:2,0:1,0:1)
     K = Iterators.product(0:2,0:1,0:1)
     for θi in I, θj in J, θk in K
-        Q = SVector(monomial(θi),monomial(θj),monomial(θk))
+        Q = SVector(Polynomial(θi=>1//1),Polynomial(θj=>1//1),Polynomial(θk=>1//1))
         U = solve_elastostatic(Q;μ,ν)
         @test μ/(1 - 2ν) * gradient(divergence(U)) + μ * laplacian.(U) == Q
     end
@@ -142,12 +156,11 @@ end
     ν = 1//7
     ω = 5//1
     k₂² = ω^2*ρ/μ
-
     # 2d
     I = Iterators.product(0:4,0:4)
     J = Iterators.product(0:4,0:4)
     for θi in I, θj in J
-        Q = SVector(monomial(θi),monomial(θj))
+        Q = SVector(Polynomial(θi=>1//1),Polynomial(θj=>1//1))
         U = solve_elastodynamics(Q;ρ,μ,ν,ω)
         @test -μ/(1-2ν)*gradient(divergence(U)) - μ*laplacian.(U) - k₂²*μ*U == Q
     end
@@ -156,7 +169,7 @@ end
     J = Iterators.product(0:1,0:2,0:1)
     K = Iterators.product(0:2,0:2,0:4)
     for θi in I, θj in J, θk in K
-        Q = SVector(monomial(θi),monomial(θj),monomial(θk))
+        Q = SVector(Polynomial(θi=>1//1),Polynomial(θj=>1//1),Polynomial(θk=>1//1))
         U = solve_elastodynamics(Q;ρ,μ,ν,ω)
         @test -μ/(1-2ν)*gradient(divergence(U)) - μ*laplacian.(U) - k₂²*μ*U == Q
     end
@@ -170,44 +183,25 @@ end
     J = Iterators.product(0:1, 0:2, 0:1)
     K = Iterators.product(0:2, 0:2, 0:3)
     for θi in I, θj in J, θk in K
-        Q = (1.0 + 0*im)*SVector(monomial(θi), monomial(θj), monomial(θk))
+        Q = SVector(Polynomial(θi=>1//1), Polynomial(θj=>1//1), Polynomial(θk=>1//1))
         # Enforce charge conservation
         ρ = -im/ω*divergence(Q)
         E, H, A, φ = solve_maxwell(Q, ρ; ϵ=ϵ,μ=μ,ω=ω)
 
         poly1 = ϵ*divergence(E) - ρ
-        order2coeff = collect(poly1.order2coeff)
-        for (order, coeff) in order2coeff
-            @test abs(coeff) < 10^(-14)
-        end
+        @test iszero(poly1)
 
         poly2 = im*ω*ϵ*E + curl(H) - Q
-        for poly in poly2
-            order2coeff = collect(poly.order2coeff)
-            for (order, coeff) in order2coeff
-                @test abs(coeff) < 10^(-14)
-            end
-        end
+        @test all(iszero, poly2)
 
         poly3 = -im*ω*μ*H + curl(E)
-        for poly in poly3
-            order2coeff = collect(poly.order2coeff)
-            for (order, coeff) in order2coeff
-                @test abs(coeff) < 10^(-14)
-            end
-        end
+        @test all(iszero, poly3)
 
         poly4 = μ*divergence(H)
-        order2coeff = collect(poly4.order2coeff)
-        for (order, coeff) in order2coeff
-            @test abs(coeff) < 10^(-14)
-        end
+        @test iszero(poly4)
 
         # Test the gauge condition
         poly5 = divergence(A) - im*ω*ϵ*μ*φ
-        polydata = collect(poly5.order2coeff)
-        for (order, coeff) in polydata
-            @test abs(coeff) < 10^(-14)
-        end
+        @test iszero(poly5)
     end
 end
