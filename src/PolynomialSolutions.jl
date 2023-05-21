@@ -446,7 +446,7 @@ end
     solve_stokes(Q::SVector{N,Polynomial{N,T}};μ=1)
 
 Compute a vector of polynomials `U` and a polynomial `P` satisfying `μΔU - ∇P =
-Q` with `∇ ⋅ U = 0`.
+Q` with `∇ ⋅ U = 0`. `Q` is required to be homogeneous.
 ```
 """
 function solve_stokes(Q::SVector{N,Polynomial{N,T}};μ=1//1) where {N,T}
@@ -476,7 +476,7 @@ end
 """
     solve_elastostatic(Q::SVector{N,Polynomial{N,T}};μ=1,ν=1)
 
-Compute a vector of polynomials `U` satisfying `μ/(1-2ν) ∇(div U) + μΔU = Q`.
+Compute a vector of polynomials `U` satisfying `μ/(1-2ν) ∇(div U) + μΔU = Q`. `Q` is required to be homogeneous.
 """
 function solve_elastostatic(Q::SVector{N, Polynomial{N, T}};μ=1,ν=0) where {N,T}
     g = 1/(2 * μ * (1 - ν)) .* map(q->solve_bilaplace(q), Q)
