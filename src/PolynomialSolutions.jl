@@ -224,6 +224,7 @@ end
 function divergence(P::SVector{N,Polynomial{N,T}}) where {N,T}
     sum(derivative(P[i],i) for i in 1:N)
 end
+divergence(P::NTuple) = divergence(SVector(P))
 
 function curl(P::SVector{N, Polynomial{N,T}}) where {N,T}
     ∇P = gradient.(P)
@@ -504,8 +505,8 @@ Also returns the polynomial vector potential `A` and scalar potential
 
 
 """
-function solve_maxwell(J::SVector{N, Polynomial{N, T}},ρ::Polynomial{N, T};ϵ=1,μ=1,ω=1) where {N,T}
-    #@assert divergence(J) - im*ω*ρ == 0
+function solve_maxwell(J::SVector{N, Polynomial{N, T}};ϵ=1,μ=1,ω=1) where {N,T}
+    ρ = -im/ω*divergence(J)
     k² = ω^2 * ϵ * μ
     A = -μ * map(j->solve_helmholtz(j,k²), J)
     φ = -1/ϵ * solve_helmholtz(ρ,k²)
@@ -514,10 +515,7 @@ function solve_maxwell(J::SVector{N, Polynomial{N, T}},ρ::Polynomial{N, T};ϵ=1
     #return E, H
     return E, H, A, φ
 end
-function solve_maxwell(J::SVector{N, Polynomial{N, T}},ρ::Polynomial{N, S};kwargs...) where {N,T,S}
-    TS = promote_type(T,S)
-    solve_maxwell(map(j->convert(Polynomial{N,TS},j),J),convert(Polynomial{N,TS},ρ);kwargs...)
-end
+solve_maxwell(J::NTuple;kwargs...) = solve_maxwell(SVector(J);kwargs...)
 
 export
     Polynomial,

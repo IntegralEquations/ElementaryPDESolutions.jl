@@ -184,10 +184,9 @@ end
     K = Iterators.product(0:2, 0:2, 0:3)
     for θi in I, θj in J, θk in K
         Q = SVector(Polynomial(θi=>1//1), Polynomial(θj=>1//1), Polynomial(θk=>1//1))
-        # Enforce charge conservation
-        ρ = -im/ω*divergence(Q)
-        E, H, A, φ = solve_maxwell(Q, ρ; ϵ=ϵ,μ=μ,ω=ω)
+        E, H, A, φ = solve_maxwell(Q; ϵ=ϵ,μ=μ,ω=ω)
 
+        ρ = -im/ω*divergence(Q)
         poly1 = ϵ*divergence(E) - ρ
         @test iszero(poly1)
 
