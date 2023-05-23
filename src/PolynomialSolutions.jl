@@ -484,12 +484,25 @@ function solve_elastostatic(Q::SVector{N, Polynomial{N, T}};μ=1,ν=0) where {N,
     return u
 end
 
-"""
+@doc raw"""
     solve_maxwell(J::SVector{N,Polynomial{N,T}}, ρ::Polynomial{N, T};ϵ=1,μ=1,ω=1)
 
 Compute a pair of vectors of polynomials `E` and `H` satisfying the Maxwell
-system. Also returns the polynomial vector potential `A` and scalar potential
+system:
+
+```math
+\begin{aligned}
+  \mathrm{i}\omega\varepsilon\boldsymbol{E} + \operatorname{rot} \boldsymbol{H} &= \boldsymbol{J}, \qquad &
+  -\mathrm{i}\omega\mu\boldsymbol{H} + \operatorname{rot}\boldsymbol{E} &= \boldsymbol{0}, \\
+  \varepsilon\operatorname{div}\boldsymbol{E} &= \rho, &
+  \mu\operatorname{div}\boldsymbol{H} &= 0,
+\end{aligned}
+```
+
+Also returns the polynomial vector potential `A` and scalar potential
 `φ`.
+
+
 """
 function solve_maxwell(J::SVector{N, Polynomial{N, T}},ρ::Polynomial{N, T};ϵ=1,μ=1,ω=1) where {N,T}
     #@assert divergence(J) - im*ω*ρ == 0
