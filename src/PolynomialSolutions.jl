@@ -1,15 +1,12 @@
 module PolynomialSolutions
 
-using LinearAlgebra
-using StaticArrays
-
 """
     struct Polynomial{N,T}
 
 A polynomial in `N` variables with coefficients of type `T`.
 
 The functor interface is implemented, so that `p(x)` evaluates the polynomial.
-For performance reasons, `x` is expected to be an `Tuple` (or `SVector`).
+For performance reasons, `x` is expected to be a `Tuple`.
 
 # Examples
 
@@ -54,10 +51,13 @@ Polynomial(v::Vector{Pair{NTuple{N,Int},T}}) where {N,T} = Polynomial{N,T}(Dict(
 Polynomial(p::Pair{NTuple{N,Int},T}) where {N,T} = Polynomial{N,T}(Dict(p))
 
 # functor interface
-(p::Polynomial{N})(x::SVector{N}) where {N} = sum(c* prod(x.^θ) for (θ,c) in p.order2coeff)
-(p::Polynomial)(x::Tuple) = p(SVector(x))
-(p::Polynomial{1})(x::Number) = p(SVector(x))
-(p::Polynomial)(x) = error("Expected a tuple or a static vector for argument, got $(typeof(x))")
+function (p::Polynomial{N})(x::Tuple) where {N}
+    @assert length(x) == N "Expected a tuple of length $N, got $(length(x))"
+    @assert all(t -> t isa Number,x) "Expected a tuple of numbers, got $(typeof(x))"
+    sum(c * prod(x.^θ) for (θ,c) in p.order2coeff)
+end
+(p::Polynomial{1})(x::Number) = p(Tuple(x))
+(p::Polynomial)(x...) = p(x)
 
 """
     is_homogeneous(p::Polynomial)
@@ -77,11 +77,11 @@ end
 """
     drop_zeros!(q::Polynomial,tol=0,p=2)
 
-Drop all coefficients in `q` for which the `norm(p,2) ≤ tol`.
+Drop all coefficients in `q` for which the `abs(p) ≤ tol`.
 """
-function drop_zeros!(q::Polynomial,tol=0,p=2)
+function drop_zeros!(q::Polynomial,tol=0)
     for (k,v) in q.order2coeff
-        if norm(v,p) ≤ tol
+        if abs(v) ≤ tol
             delete!(q.order2coeff, k)
         end
     end
@@ -205,7 +205,7 @@ Return an `N`-tuple of the derivatives of `p` with respect to each variable.
 function gradient(p::Polynomial{N,T}) where {N,T}
     ntuple(N) do d
         derivative(p,d)
-    end |> SVector
+    end
 end
 
 function laplacian(p::Polynomial{N,T}) where {N,T}
@@ -221,19 +221,18 @@ function laplacian(p::Polynomial{N,T}) where {N,T}
     return Polynomial{N,T}(order2coeff)
 end
 
-function divergence(P::SVector{N,Polynomial{N,T}}) where {N,T}
+function divergence(P::NTuple{N,Polynomial{N,T}}) where {N,T}
     sum(derivative(P[i],i) for i in 1:N)
 end
-divergence(P::NTuple) = divergence(SVector(P))
 
-function curl(P::SVector{N, Polynomial{N,T}}) where {N,T}
+function curl(P::NTuple{N, Polynomial{N,T}}) where {N,T}
     ∇P = gradient.(P)
     if N == 2
-        curlP = SVector{3, Polynomial{N,T}}(Polynomial{N,T}(), Polynomial{N,T}(), ∇P[2][1] - ∇P[1][2])
+        curlP = (Polynomial{N,T}(), Polynomial{N,T}(), ∇P[2][1] - ∇P[1][2])
     elseif N == 3
-        curlP = SVector{3, Polynomial{N,T}}(∇P[3][2] - ∇P[2][3], ∇P[1][3] - ∇P[3][1], ∇P[2][1] - ∇P[1][2])
+        curlP = (∇P[3][2] - ∇P[2][3], ∇P[1][3] - ∇P[3][1], ∇P[2][1] - ∇P[1][2])
     else
-        print("Curl not implemented for this value of N")
+        print("Curl not implemented for N = $N")
     end
     return curlP
 end
@@ -444,13 +443,13 @@ function solve_bilaplace(Q::Polynomial{N}) where {N}
 end
 
 """
-    solve_stokes(Q::SVector{N,Polynomial{N,T}};μ=1)
+    solve_stokes(Q::NTuple{N,Polynomial{N,T}};μ=1)
 
 Compute a vector of polynomials `U` and a polynomial `P` satisfying `μΔU - ∇P =
 Q` with `∇ ⋅ U = 0`. `Q` is required to be homogeneous.
 ```
 """
-function solve_stokes(Q::SVector{N,Polynomial{N,T}};μ=1//1) where {N,T}
+function solve_stokes(Q::NTuple{N,Polynomial{N,T}};μ=1//1) where {N,T}
     # u = Δg - ∇ (∇ ⋅ g), p = -μ Δ (∇ ⋅ g), where g solves μΔΔg = Q
     g = 1/μ .* map(q->solve_bilaplace(q),Q)
     h = -divergence(g)
@@ -458,35 +457,34 @@ function solve_stokes(Q::SVector{N,Polynomial{N,T}};μ=1//1) where {N,T}
     p = μ*laplacian(h)
     return u,p
 end
-solve_stokes(Q::NTuple;kwargs...) = solve_stokes(SVector(Q);kwargs...)
 
 """
-    solve_elastodynamics(Q::SVector{N,Polynomial{N,T}};ρ=1,μ=1,ν=1/4,ω=1)
+    solve_elastodynamics(Q::NTuple{N,Polynomial{N,T}};ρ=1,μ=1,ν=1/4,ω=1)
 
 Compute a vector of polynomials `U` satisfying `-μ/(1-2ν) ∇(div U) - μ ΔU - μ
 k₂² U = Q`.
 """
-function solve_elastodynamics(Q::SVector{N,Polynomial{N,T}};ρ=1//1,μ=1//1,ν=1//4,ω=1//1) where {N,T}
+function solve_elastodynamics(Q::NTuple{N,Polynomial{N,T}};ρ=1//1,μ=1//1,ν=1//4,ω=1//1) where {N,T}
     k₁² = ω^2/(2*μ*(1-ν)/(ρ*(1 - 2ν)))
     k₂² = ω^2*ρ/μ
-    g = -1/(2*μ*(1-ν))*map(q->solve_helmholtz(solve_helmholtz(q,k₁²),k₂²),Q)
-    u = 2*(1-ν)*(laplacian.(g) + k₁²*g) - gradient(divergence(g))
+    g = -1/(2*μ*(1-ν)) .* map(q->solve_helmholtz(solve_helmholtz(q,k₁²),k₂²),Q)
+    u = 2*(1-ν) .* (laplacian.(g) .+ k₁².*g) .- gradient(divergence(g))
     return u
 end
 
 """
-    solve_elastostatic(Q::SVector{N,Polynomial{N,T}};μ=1,ν=1)
+    solve_elastostatic(Q::NTuple{N,Polynomial{N,T}};μ=1,ν=1)
 
 Compute a vector of polynomials `U` satisfying `μ/(1-2ν) ∇(div U) + μΔU = Q`. `Q` is required to be homogeneous.
 """
-function solve_elastostatic(Q::SVector{N, Polynomial{N, T}};μ=1,ν=0) where {N,T}
+function solve_elastostatic(Q::NTuple{N, Polynomial{N, T}};μ=1,ν=0) where {N,T}
     g = 1/(2 * μ * (1 - ν)) .* map(q->solve_bilaplace(q), Q)
-    u = 2(1 - ν) * laplacian.(g) - gradient(divergence(g))
+    u = 2(1 - ν) .* laplacian.(g) .- gradient(divergence(g))
     return u
 end
 
 @doc raw"""
-    solve_maxwell(J::SVector{N,Polynomial{N,T}}, ρ::Polynomial{N, T};ϵ=1,μ=1,ω=1)
+    solve_maxwell(J::NTuple{N,Polynomial{N,T}}, ρ::Polynomial{N, T};ϵ=1,μ=1,ω=1)
 
 Compute a pair of vectors of polynomials `E` and `H` satisfying the Maxwell
 system:
@@ -501,21 +499,19 @@ system:
 ```
 
 Also returns the polynomial vector potential `A` and scalar potential
-`φ`.
-
+`φ` for convenience.
 
 """
-function solve_maxwell(J::SVector{N, Polynomial{N, T}};ϵ=1,μ=1,ω=1) where {N,T}
+function solve_maxwell(J::NTuple{N, Polynomial{N, T}};ϵ=1,μ=1,ω=1) where {N,T}
     ρ = -im/ω*divergence(J)
     k² = ω^2 * ϵ * μ
-    A = -μ * map(j->solve_helmholtz(j,k²), J)
+    A = -μ .* map(j->solve_helmholtz(j,k²), J)
     φ = -1/ϵ * solve_helmholtz(ρ,k²)
-    E = im * ω * A - gradient(φ)
-    H = 1/μ * curl(A)
+    E = im * ω .* A .- gradient(φ)
+    H = 1/μ .* curl(A)
     #return E, H
     return E, H, A, φ
 end
-solve_maxwell(J::NTuple;kwargs...) = solve_maxwell(SVector(J);kwargs...)
 
 export
     Polynomial,

@@ -1,5 +1,4 @@
 using PolynomialSolutions
-using StaticArrays
 using Test
 using PolynomialSolutions: laplacian, divergence, gradient, curl, convert_coefs
 
@@ -40,24 +39,18 @@ using PolynomialSolutions: laplacian, divergence, gradient, curl, convert_coefs
         @test PolynomialSolutions.laplacian(P) == divergence(gradient(P))
     end
 
-    @test (PolynomialSolutions.curl(
-        SVector((
-            Polynomial((3,1,1)=>1),
-            Polynomial((1,2,5)=>1),
-            Polynomial((1,2,3)=>1))))
-        ==
-        SVector((
-            Polynomial(((1,1,3)=>2,(1,2,4)=>-5)),
+    P = (Polynomial((3,1,1)=>1), Polynomial((1,2,5)=>1), Polynomial((1,2,3)=>1))
+    curlP = (Polynomial(((1,1,3)=>2,(1,2,4)=>-5)),
             Polynomial(((3,1,0)=>1,(0,2,3)=>-1)),
-            Polynomial(((0,2,5)=>1,(3,0,1)=>-1))))
-        )
+            Polynomial(((0,2,5)=>1,(3,0,1)=>-1)))
+    PolynomialSolutions.curl(P) == curlP
     for k in 0:4, j in 0:4, i in 0:4
-        P = SVector((Polynomial((i, j, k)=>1), Polynomial((j,i,k)=>1), Polynomial((k,j,i)=>1)))
+        P = (Polynomial((i, j, k)=>1), Polynomial((j,i,k)=>1), Polynomial((k,j,i)=>1))
         @test iszero(PolynomialSolutions.divergence(PolynomialSolutions.curl(P)))
         Q = Polynomial((i, j, k)=>1)
-        @test iszero(PolynomialSolutions.curl(PolynomialSolutions.gradient(Q)))
-        @test (PolynomialSolutions.curl(PolynomialSolutions.curl(P)) ==
-            PolynomialSolutions.gradient(PolynomialSolutions.divergence(P)) - laplacian.(P))
+        @test all(iszero,PolynomialSolutions.curl(PolynomialSolutions.gradient(Q)))
+        @test PolynomialSolutions.curl(PolynomialSolutions.curl(P)) ==
+            PolynomialSolutions.gradient(PolynomialSolutions.divergence(P)) .- laplacian.(P)
     end
 end
 
@@ -111,9 +104,9 @@ end
     I = Iterators.product(0:4,0:4)
     J = Iterators.product(0:4,0:4)
     for θi in I, θj in J
-        Q = SVector(Polynomial(θi=>1//1),Polynomial(θj=>1//1))
+        Q = (Polynomial(θi=>1//1),Polynomial(θj=>1//1))
         U,P = solve_stokes(Q;μ)
-        @test μ * laplacian.(U) - gradient(P) == Q
+        @test μ .* laplacian.(U) .- gradient(P) == Q
         @test iszero(divergence(U))
     end
     # 3d
@@ -121,9 +114,9 @@ end
     J = Iterators.product(0:2,0:1,0:1)
     K = Iterators.product(0:2,0:1,0:1)
     for θi in I, θj in J, θk in K
-        Q = SVector(Polynomial(θi=>1//1),Polynomial(θj=>1//1),Polynomial(θk=>1//1))
+        Q = (Polynomial(θi=>1//1),Polynomial(θj=>1//1),Polynomial(θk=>1//1))
         U,P = solve_stokes(Q;μ)
-        @test μ * laplacian.(U) - gradient(P) == Q
+        @test μ .* laplacian.(U) .- gradient(P) == Q
         @test iszero(divergence(U))
     end
 end
@@ -135,18 +128,18 @@ end
     I = Iterators.product(0:4,0:4)
     J = Iterators.product(0:4,0:4)
     for θi in I, θj in J
-        Q = SVector(Polynomial(θi=>1//1),Polynomial(θj=>1//1))
+        Q = (Polynomial(θi=>1//1),Polynomial(θj=>1//1))
         U = solve_elastostatic(Q;μ,ν)
-        @test μ/(1 - 2ν) * gradient(divergence(U)) + μ * laplacian.(U) == Q
+        @test μ/(1 - 2ν) .* gradient(divergence(U)) .+ μ .* laplacian.(U) == Q
     end
     # 3d
     I = Iterators.product(0:1,0:2,0:1)
     J = Iterators.product(0:2,0:1,0:1)
     K = Iterators.product(0:2,0:1,0:1)
     for θi in I, θj in J, θk in K
-        Q = SVector(Polynomial(θi=>1//1),Polynomial(θj=>1//1),Polynomial(θk=>1//1))
+        Q = (Polynomial(θi=>1//1),Polynomial(θj=>1//1),Polynomial(θk=>1//1))
         U = solve_elastostatic(Q;μ,ν)
-        @test μ/(1 - 2ν) * gradient(divergence(U)) + μ * laplacian.(U) == Q
+        @test μ/(1 - 2ν) .* gradient(divergence(U)) .+ μ .* laplacian.(U) == Q
     end
 end
 
@@ -160,18 +153,18 @@ end
     I = Iterators.product(0:4,0:4)
     J = Iterators.product(0:4,0:4)
     for θi in I, θj in J
-        Q = SVector(Polynomial(θi=>1//1),Polynomial(θj=>1//1))
+        Q = (Polynomial(θi=>1//1),Polynomial(θj=>1//1))
         U = solve_elastodynamics(Q;ρ,μ,ν,ω)
-        @test -μ/(1-2ν)*gradient(divergence(U)) - μ*laplacian.(U) - k₂²*μ*U == Q
+        @test -μ/(1-2ν).*gradient(divergence(U)) .- μ.*laplacian.(U) .- k₂²*μ.*U == Q
     end
     # 3d
     I = Iterators.product(0:3,0:2,0:3)
     J = Iterators.product(0:1,0:2,0:1)
     K = Iterators.product(0:2,0:2,0:4)
     for θi in I, θj in J, θk in K
-        Q = SVector(Polynomial(θi=>1//1),Polynomial(θj=>1//1),Polynomial(θk=>1//1))
+        Q = (Polynomial(θi=>1//1),Polynomial(θj=>1//1),Polynomial(θk=>1//1))
         U = solve_elastodynamics(Q;ρ,μ,ν,ω)
-        @test -μ/(1-2ν)*gradient(divergence(U)) - μ*laplacian.(U) - k₂²*μ*U == Q
+        @test -μ/(1-2ν).*gradient(divergence(U)) .- μ.*laplacian.(U) .- k₂²*μ.*U == Q
     end
 end
 
@@ -183,17 +176,17 @@ end
     J = Iterators.product(0:1, 0:2, 0:1)
     K = Iterators.product(0:2, 0:2, 0:3)
     for θi in I, θj in J, θk in K
-        Q = SVector(Polynomial(θi=>1//1), Polynomial(θj=>1//1), Polynomial(θk=>1//1))
+        Q = (Polynomial(θi=>1//1), Polynomial(θj=>1//1), Polynomial(θk=>1//1))
         E, H, A, φ = solve_maxwell(Q; ϵ=ϵ,μ=μ,ω=ω)
 
         ρ = -im/ω*divergence(Q)
         poly1 = ϵ*divergence(E) - ρ
         @test iszero(poly1)
 
-        poly2 = im*ω*ϵ*E + curl(H) - Q
+        poly2 = im*ω*ϵ .* E .+ curl(H) .- Q
         @test all(iszero, poly2)
 
-        poly3 = -im*ω*μ*H + curl(E)
+        poly3 = -im*ω*μ.*H .+ curl(E)
         @test all(iszero, poly3)
 
         poly4 = μ*divergence(H)
