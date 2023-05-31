@@ -199,6 +199,5 @@ end
 
         poly4 = μ * divergence(H)
         @test iszero(poly4)
-
     end
 end

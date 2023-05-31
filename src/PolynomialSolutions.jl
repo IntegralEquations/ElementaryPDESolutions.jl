@@ -397,6 +397,16 @@ end
     solve_helmholtz(Q::Polynomial;k=1)
 
 Return the unique polynomial `P` satisfying `ΔP + k²P = Q`.
+
+# Examples
+
+```jldoctest
+julia> Q = Polynomial((1,2)=>1)
+xy²
+
+julia> P = solve_helmholtz(Q, k=1)
+-2.0x + xy²
+```
 """
 function solve_helmholtz(Q::Polynomial, k²)
     n = degree(Q)
@@ -415,6 +425,16 @@ solve_helmholtz(Q::Polynomial; k=1) = solve_helmholtz(Q, k^2)
     solve_laplace(Q::Polynomial)
 
 Return a polynomial `P` satisfying `ΔP = Q`. `Q` is required to be homogeneous.
+
+# Examples
+
+```jldoctest
+julia> Q = Polynomial((1,0)=>1.0)
+x
+
+julia> P = solve_laplace(Q)
+0.125xy² + 0.125x³
+```
 """
 function solve_laplace(Q::Polynomial{N,T}) where {N,T}
     @assert is_homogeneous(Q) "source term `Q` must be a homogeneous polynomial"
@@ -437,6 +457,16 @@ end
     solve_bilaplace(Q::Polynomial)
 
 Compute a polynomial solution to `Δ²P = Q`. `Q` is required to be homogeneous.
+
+# Examples
+
+```jldoctest
+julia> Q = Polynomial((1,0)=>1)
+x
+
+julia> P = solve_bilaplace(Q)
+1//192x⁵ + 1//96x³y² + 1//192xy⁴
+```
 """
 function solve_bilaplace(Q::Polynomial{N}) where {N}
     P′ = solve_laplace(Q)
@@ -449,6 +479,15 @@ end
 
 Compute a vector of polynomials `U` and a polynomial `P` satisfying `μΔU - ∇P =
 Q` with `∇ ⋅ U = 0`. `Q` is required to be homogeneous.
+
+# Examples
+
+```jldoctest
+julia> Q = (Polynomial((1,0)=>1),Polynomial((0,0)=>1))
+(x, 1)
+
+julia> P = solve_stokes(Q;μ=Rational(1))
+((-1//8xy + 1//16xy² + 1//48x³, 3//16x² + 1//16y² - 1//48y³ - 1//16x²y), -1//2y - 3//8x² - 1//8y²)
 ```
 """
 function solve_stokes(Q::NTuple{N,Polynomial{N,T}}; μ=1 // 1) where {N,T}
@@ -465,6 +504,16 @@ end
 
 Compute a vector of polynomials `U` satisfying `-μ/(1-2ν) ∇(div U) - μ ΔU - μ
 k₂² U = Q`.
+
+# Examples
+
+```jldoctest
+julia> Q = (Polynomial((1,0)=>1),Polynomial((0,0)=>1))
+(x, 1)
+
+julia> P = solve_elastodynamics(Q;μ=1)
+((-1//8xy + 1//16xy² + 1//48x³, 3//16x² + 1//16y² - 1//48y³ - 1//16x²y), -1//2y - 3//8x² - 1//8y²)
+```
 """
 function solve_elastodynamics(Q::NTuple{N,Polynomial{N,T}}; ρ=1 // 1, μ=1 // 1, ν=1 // 4,
                               ω=1 // 1) where {N,T}
