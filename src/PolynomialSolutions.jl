@@ -275,7 +275,7 @@ function Base.show(io::IO, p::Polynomial{N,T}) where {N,T<:Real}
         end
         # print the coefficient if it is not one
         if sum(order) == 0
-            print(io, coeff)
+            first_coeff ? print(io, abs(coeff)) : print(io,coeff)
         elseif abs(coeff) != 1
             first_coeff ? print(io, coeff) : print(io, abs(coeff))
         end
