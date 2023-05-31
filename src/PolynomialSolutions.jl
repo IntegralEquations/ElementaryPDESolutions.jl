@@ -508,11 +508,11 @@ k₂² U = Q`.
 # Examples
 
 ```jldoctest
-julia> Q = (Polynomial((1,0)=>1),Polynomial((0,0)=>1))
-(x, 1)
+julia> Q = (Polynomial((2,1)=>1),Polynomial((1,0)=>1))
+(x²y, x)
 
 julia> P = solve_elastodynamics(Q;μ=1)
-((-1//8xy + 1//16xy² + 1//48x³, 3//16x² + 1//16y² - 1//48y³ - 1//16x²y), -1//2y - 3//8x² - 1//8y²)
+(6//1y - x²y, 3//1x)
 ```
 """
 function solve_elastodynamics(Q::NTuple{N,Polynomial{N,T}}; ρ=1 // 1, μ=1 // 1, ν=1 // 4,
