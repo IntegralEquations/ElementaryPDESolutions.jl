@@ -185,7 +185,7 @@ end
     K = Iterators.product(0:2, 0:2, 0:3)
     for θi in I, θj in J, θk in K
         Q = (Polynomial(θi => 1 // 1), Polynomial(θj => 1 // 1), Polynomial(θk => 1 // 1))
-        E, H, A, φ = solve_maxwell(Q; ϵ=ϵ, μ=μ, ω=ω)
+        E, H = solve_maxwell(Q; ϵ=ϵ, μ=μ, ω=ω)
 
         ρ = -im / ω * divergence(Q)
         poly1 = ϵ * divergence(E) - ρ
@@ -200,8 +200,5 @@ end
         poly4 = μ * divergence(H)
         @test iszero(poly4)
 
-        # Test the gauge condition
-        poly5 = divergence(A) - im * ω * ϵ * μ * φ
-        @test iszero(poly5)
     end
 end

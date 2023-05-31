@@ -501,9 +501,7 @@ system:
 \end{aligned}
 ```
 
-Also returns the polynomial vector potential `A` and scalar potential
-`φ` for convenience.
-
+Returns the pair `(E, H)`.
 """
 function solve_maxwell(J::NTuple{N,Polynomial{N,T}}; ϵ=1, μ=1, ω=1) where {N,T}
     ρ = -im / ω * divergence(J)
@@ -512,8 +510,7 @@ function solve_maxwell(J::NTuple{N,Polynomial{N,T}}; ϵ=1, μ=1, ω=1) where {N,
     φ = -1 / ϵ * solve_helmholtz(ρ, k²)
     E = im * ω .* A .- gradient(φ)
     H = 1 / μ .* curl(A)
-    #return E, H
-    return E, H, A, φ
+    return E, H
 end
 
 export
