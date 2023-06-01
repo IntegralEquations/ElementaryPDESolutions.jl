@@ -512,7 +512,7 @@ julia> Q = (Polynomial((2,1)=>1),Polynomial((1,0)=>1))
 (x²y, x)
 
 julia> P = solve_elastodynamics(Q;μ=1)
-(6//1y - x²y, 3//1x)
+(-6//1y + x²y, -3//1x)
 ```
 """
 function solve_elastodynamics(Q::NTuple{N,Polynomial{N,T}}; ρ=1 // 1, μ=1 // 1, ν=1 // 4,
@@ -520,7 +520,7 @@ function solve_elastodynamics(Q::NTuple{N,Polynomial{N,T}}; ρ=1 // 1, μ=1 // 1
     k₁² = ω^2 / (2 * μ * (1 - ν) / (ρ * (1 - 2ν)))
     k₂² = ω^2 * ρ / μ
     g = -1 / (2 * μ * (1 - ν)) .* map(q -> solve_helmholtz(solve_helmholtz(q, k₁²), k₂²), Q)
-    u = 2 * (1 - ν) .* (laplacian.(g) .+ k₁² .* g) .- gradient(divergence(g))
+    u = -2 * (1 - ν) .* (laplacian.(g) .+ k₁² .* g) .+ gradient(divergence(g))
     return u
 end
 
@@ -559,7 +559,7 @@ function solve_maxwell(J::NTuple{N,Polynomial{N,T}}; ϵ=1, μ=1, ω=1) where {N,
     φ = -1 / ϵ * solve_helmholtz(ρ, k²)
     E = im * ω .* A .- gradient(φ)
     H = 1 / μ .* curl(A)
-    return E, H
+    return drop_zeros!.(E), drop_zeros!.(H)
 end
 
 export

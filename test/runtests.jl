@@ -161,7 +161,7 @@ end
     for θi in I, θj in J
         Q = (Polynomial(θi => 1 // 1), Polynomial(θj => 1 // 1))
         U = solve_elastodynamics(Q; ρ, μ, ν, ω)
-        @test -μ / (1 - 2ν) .* gradient(divergence(U)) .- μ .* laplacian.(U) .-
+        @test μ / (1 - 2ν) .* gradient(divergence(U)) .+ μ .* laplacian.(U) .+
               k₂² * μ .* U == Q
     end
     # 3d
@@ -171,7 +171,7 @@ end
     for θi in I, θj in J, θk in K
         Q = (Polynomial(θi => 1 // 1), Polynomial(θj => 1 // 1), Polynomial(θk => 1 // 1))
         U = solve_elastodynamics(Q; ρ, μ, ν, ω)
-        @test -μ / (1 - 2ν) .* gradient(divergence(U)) .- μ .* laplacian.(U) .-
+        @test μ / (1 - 2ν) .* gradient(divergence(U)) .+ μ .* laplacian.(U) .+
               k₂² * μ .* U == Q
     end
 end
