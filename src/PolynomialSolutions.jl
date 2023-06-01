@@ -275,7 +275,7 @@ function Base.show(io::IO, p::Polynomial{N,T}) where {N,T<:Real}
         end
         # print the coefficient if it is not one
         if sum(order) == 0
-            first_coeff ? print(io, abs(coeff)) : print(io,coeff)
+            first_coeff ? print(io, abs(coeff)) : print(io, coeff)
         elseif abs(coeff) != 1
             first_coeff ? print(io, coeff) : print(io, abs(coeff))
         end
@@ -546,7 +546,7 @@ function solve_elastostatic(Q::NTuple{N,Polynomial{N,T}}; μ=1, ν=0) where {N,T
 end
 
 @doc raw"""
-    solve_maxwell(J::NTuple{N,Polynomial{N,T}};ϵ=1,μ=1,ω=1)
+    solve_maxwell(J::NTuple{3,Polynomial{3,T}};ϵ=1,μ=1,ω=1)
 
 Compute a pair of vectors of polynomials `E` and `H` satisfying the Maxwell
 system:
@@ -585,7 +585,7 @@ julia> H
 (y, 2.0 + z - y², 2.0yz)
 ```
 """
-function solve_maxwell(J::NTuple{N,Polynomial{N,T}}; ϵ=1, μ=1, ω=1) where {N,T}
+function solve_maxwell(J::NTuple{3,Polynomial{3,T}}; ϵ=1, μ=1, ω=1) where {T}
     ρ = -im / ω * divergence(J)
     k² = ω^2 * ϵ * μ
     A = -μ .* map(j -> solve_helmholtz(j, k²), J)
