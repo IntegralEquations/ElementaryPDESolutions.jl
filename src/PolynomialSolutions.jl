@@ -528,6 +528,16 @@ end
     solve_elastostatic(Q::NTuple{N,Polynomial{N,T}};μ=1,ν=1)
 
 Compute a vector of polynomials `U` satisfying `μ/(1-2ν) ∇(div U) + μΔU = Q`. `Q` is required to be homogeneous.
+
+# Examples
+
+```jldoctest
+julia> Q = (Polynomial((1,2)=>1), Polynomial((0,0)=>1))
+(xy², 1)
+
+julia> P = solve_elastostatic(Q;ν=1//2)
+(-1//8xy + 1//480x⁵ + 1//32x³y² + 1//24xy⁴, 3//16x² + 1//16y² - 1//120y⁵ - 1//96x⁴y - 1//32x²y³)
+```
 """
 function solve_elastostatic(Q::NTuple{N,Polynomial{N,T}}; μ=1, ν=0) where {N,T}
     g = 1 / (2 * μ * (1 - ν)) .* map(q -> solve_bilaplace(q), Q)
@@ -559,6 +569,21 @@ with the sources being constrained by the charge conservation equation:
 ```
 
 Returns the pair `(E, H)`.
+
+# Examples
+
+```jldoctest
+julia> Q = (Polynomial((0,2,1) => 1), Polynomial((0,1,1) => 1), Polynomial((1,0,1) => 1))
+(y²z, yz, xz)
+
+julia> E, H = solve_maxwell(Q);
+
+julia> E
+((-0.0 - 1.0im) + (0.0 + 2.0im)z + (-0.0 - 1.0im)y²z, (-0.0 - 1.0im)yz, (-0.0 - 1.0im) + (-0.0 - 1.0im)xz)
+
+julia> H
+(y, 2.0 + z - y², 2.0yz)
+```
 """
 function solve_maxwell(J::NTuple{N,Polynomial{N,T}}; ϵ=1, μ=1, ω=1) where {N,T}
     ρ = -im / ω * divergence(J)
