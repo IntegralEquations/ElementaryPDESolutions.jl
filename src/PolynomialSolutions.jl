@@ -536,7 +536,7 @@ function solve_elastostatic(Q::NTuple{N,Polynomial{N,T}}; μ=1, ν=0) where {N,T
 end
 
 @doc raw"""
-    solve_maxwell(J::NTuple{N,Polynomial{N,T}}, ρ::Polynomial{N, T};ϵ=1,μ=1,ω=1)
+    solve_maxwell(J::NTuple{N,Polynomial{N,T}};ϵ=1,μ=1,ω=1)
 
 Compute a pair of vectors of polynomials `E` and `H` satisfying the Maxwell
 system:
@@ -547,6 +547,14 @@ system:
   -\mathrm{i}\omega\mu\boldsymbol{H} + \operatorname{rot}\boldsymbol{E} &= \boldsymbol{0}, \\
   \varepsilon\operatorname{div}\boldsymbol{E} &= \rho, &
   \mu\operatorname{div}\boldsymbol{H} &= 0,
+\end{aligned}
+```
+
+with the sources being constrained by the charge conservation equation:
+
+```math
+\begin{aligned}
+  \operatorname{div}\boldsymbol{J} - \mathrm{i}\omega\rho &= 0.
 \end{aligned}
 ```
 
