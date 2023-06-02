@@ -573,10 +573,10 @@ Returns the pair `(E, H)`.
 # Examples
 
 ```jldoctest
-julia> Q = (Polynomial((0,2,1) => 1), Polynomial((0,1,1) => 1), Polynomial((1,0,1) => 1))
+julia> J = (Polynomial((0,2,1) => 1), Polynomial((0,1,1) => 1), Polynomial((1,0,1) => 1))
 (y²z, yz, xz)
 
-julia> E, H = solve_maxwell(Q);
+julia> E, H = solve_maxwell(J);
 
 julia> E
 ((-0.0 - 1.0im) + (0.0 + 2.0im)z + (-0.0 - 1.0im)y²z, (-0.0 - 1.0im)yz, (-0.0 - 1.0im) + (-0.0 - 1.0im)xz)
