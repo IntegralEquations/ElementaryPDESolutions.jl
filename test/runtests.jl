@@ -1,6 +1,13 @@
 using PolynomialSolutions
 using Test
 using PolynomialSolutions: laplacian, divergence, gradient, curl, convert_coefs
+using Aqua
+
+# run aqua tests. We disable `unbound_args`` because otherwise signatures like
+# `solve_stokes(Q::NTuple{N,PolynomialSolution{N,T}})` fail due to the
+# possibility that `Q` is an empty tuple, in which case the element type is not
+# defined. Not sure how to fix this, so for now we just disable the test.
+Aqua.test_all(PolynomialSolutions; unbound_args=false)
 
 @testset "Polynomials" begin
     p1 = Polynomial((0, 0) => 1)

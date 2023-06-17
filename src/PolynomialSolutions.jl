@@ -154,7 +154,8 @@ function Base.:(==)(p1::Polynomial{N}, p2::Polynomial{M}) where {N,M}
 end
 
 # multiply a polynomial by a scalar
-function Base.:*(c::S, p::Polynomial{N,T}) where {S,N,T}
+function Base.:*(c::Number, p::Polynomial{N,T}) where {N,T}
+    S = typeof(c)
     V = promote_type(S, T)
     acc = Polynomial{N,V}()
     for (order, coeff) in p.order2coeff
@@ -162,7 +163,7 @@ function Base.:*(c::S, p::Polynomial{N,T}) where {S,N,T}
     end
     return acc
 end
-Base.:*(p::Polynomial, c) = c * p
+Base.:*(p::Polynomial, c::Number) = c * p
 
 """
     convert_coefs(p::Polynomial, T)
