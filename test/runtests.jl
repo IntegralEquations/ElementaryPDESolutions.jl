@@ -1,4 +1,5 @@
 using PolynomialSolutions
+using StaticArrays
 using Test
 using PolynomialSolutions: laplacian, divergence, gradient, curl, convert_coefs
 
@@ -89,6 +90,29 @@ end
     # test that you cannot pass an inhomogenous polynomials
     Q = Polynomial([(0, 0) => 1, (1, 0) => 2, (0, 1) => 3])
     @test_throws AssertionError solve_laplace(Q)
+end
+
+@testset "Anisotropic Laplace" begin
+    A = SMatrix{2, 2, Float64}(2, 1, 1, 3)
+    Q = Polynomial([(1, 3) => 1.0, (2, 2) => 1.0])
+    rAQ = PolynomialSolutions.multiply_by_anisotropic_r(A, Q, 2)
+    @test iszero(PolynomialSolutions.drop_zeros!(rAQ - Polynomial([(3,3) => 0.2, (4, 2) => 0.6, (1, 5) => 0.4]), 10^(-15)))
+    @test PolynomialSolutions.anisotropic_laplacian(A, Q) == Polynomial([(2, 0) => 6.0, (1, 1) => 26.0, (0, 2) => 10.0])
+    @test iszero(PolynomialSolutions.drop_zeros!(
+        PolynomialSolutions.anisotropic_laplacian(A, solve_anisotropic_laplace(A, Q)) - Q, 10^(-15)))
+    # test that you cannot pass an inhomogenous polynomial
+    Q = Polynomial([(0, 0) => 1.0, (1, 0) => 2.0, (0, 1) => 3.0])
+    @test_throws AssertionError solve_anisotropic_laplace(A, Q)
+
+    A = SMatrix{3, 3, Float64}(3, 2, 1.5, 2, 4, 1, 1.5, 1, 3)
+    Q = Polynomial([(1, 3, 1) => 1.0, (2, 2, 1) => 2.0])
+    @test iszero(PolynomialSolutions.drop_zeros!(
+        PolynomialSolutions.anisotropic_laplacian(A, solve_anisotropic_laplace(A, Q)) - Q, 10^(-15)))
+    # test that you cannot pass an asymmetric matrix
+    A = SMatrix{3, 3, Float64}(3, 3, 1.5, 2, 4, 1, 1.5, 1, 3)
+    # test that you cannot pass a non-positive matrix
+    A = SMatrix{3, 3, Float64}(3, 5, 1.5, 5, 4, 1, 1.5, 1, 3)
+    @test_throws AssertionError solve_anisotropic_laplace(A, Q)
 end
 
 @testset "Bilaplace" begin

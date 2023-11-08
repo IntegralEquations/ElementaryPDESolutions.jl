@@ -1,4 +1,8 @@
 module PolynomialSolutions
+using StaticArrays
+# This (and StaticArrays as well, less problematically) breaks the claim in the
+# paper that the code is completely self-contained
+using LinearAlgebra
 
 """
     struct Polynomial{N,T}
@@ -109,6 +113,32 @@ function multiply_by_r(p::Polynomial{N,T}, k::Int) where {N,T}
 end
 
 """
+    multiply_by_anisotropic_r(A::SMatrix{N,N,T}, p::Polynomial, k::Int = 2)
+
+Multiply a polynomial `p` by the monomial `r_A^k`, where `r_A = |r^T A^{-1} r|`,
+r = (x_1, x_2, ... x_n]) and `k` is an even positive integer.
+"""
+function multiply_by_anisotropic_r(A::SMatrix{N,N,T}, p::Polynomial{N,T}, k::Int) where {N,T}
+    @assert iseven(k)
+    k == 0 && return p
+    # TODO We can't treat rationals (even GenericLinearAlgebra is missing this?)
+    # because of A^{-1}. What is the most generic thing we should allow?
+    p = convert_coefs(p, Float64)
+    order2coeff = empty(p.order2coeff)
+    invA = LinearAlgebra.inv(A)
+    for (θ, c) in p.order2coeff
+        for i in 1:N
+            for j in 1:N
+                θ′ = ntuple(l -> θ[l] + Int(l == j) + Int(l == i), length(θ))
+                order2coeff[θ′] = get(order2coeff, θ′, zero(T)) + c*invA[i, j]
+            end
+        end
+    end
+    q = Polynomial(order2coeff)
+    return multiply_by_anisotropic_r(A, q, k - 2)
+end
+
+"""
     degree(p::Polynomial)
 
 The largest degree of any monomial in `p`.
@@ -210,17 +240,12 @@ function gradient(p::Polynomial{N,T}) where {N,T}
     end
 end
 
-function laplacian(p::Polynomial{N,T}) where {N,T}
-    order2coeff = empty(p.order2coeff)
-    for (θ, c) in p.order2coeff
-        for d in 1:N
-            θ[d] < 2 && continue
-            θ′ = ntuple(i -> i == d ? θ[d] - 2 : θ[i], N)
-            c′ = c * (θ[d]) * (θ[d] - 1)
-            order2coeff[θ′] = get(order2coeff, θ′, zero(T)) + c′
-        end
-    end
-    return Polynomial{N,T}(order2coeff)
+laplacian(p::Polynomial{N,T}) where {N,T} = divergence(gradient(p))
+
+function anisotropic_laplacian(A::SMatrix{N,N,T}, p::Polynomial{N,T}) where {N,T}
+    ∇p = gradient(p)
+    Δp = sum(derivative(sum(A[i, j] * ∇p[j] for j in 1:N), i) for i in 1:N)
+    return Δp
 end
 
 function divergence(P::NTuple{N,Polynomial{N,T}}) where {N,T}
@@ -454,6 +479,33 @@ function solve_laplace(Q::Polynomial{N,T}) where {N,T}
 end
 
 """
+    solve_anisotropic_laplace(A::SMatrix{N, N, Float64}, Q::Polynomial)
+
+Return a polynomial `P` satisfying the anisotropic Laplace equation `∇ ⋅ (A ∇P) = Q`, `A` a symmetric positive definite
+matrix. `Q` is required to be homogeneous. Inverse is anisotropic_laplacian.``
+"""
+# Can in principle change Float64 to T here but see multiply_by_anisotropic_r for limitations
+function solve_anisotropic_laplace(A::SMatrix{N, N, Float64}, Q::Polynomial{N,Float64}) where {N,Float64}
+    @assert A == transpose(A) "anisotropic tensor must be symmetric"
+    @assert is_homogeneous(Q) "source term `Q` must be a homogeneous polynomial"
+    #Should we turn this off by default? Expensive.
+    @assert all(LinearAlgebra.eigvals(A) .> 0) "anisotropic tensor must be positive"
+    n = degree(Q)
+    γ = (k, p) -> big(2 * (k + 1) * (2k + 2p + N)) # γₖᵖ
+    cₖ = 1 // γ(0, n) # c₀
+    P = cₖ * multiply_by_anisotropic_r(A, deepcopy(Q), 2)
+    ΔᵏQ = deepcopy(Q)
+    m = floor(Int, n / 2)
+    for k in 1:m
+        cₖ = -cₖ / (γ(k, n - 2k))
+        ΔᵏQ = anisotropic_laplacian(A, ΔᵏQ)
+        ΔP = cₖ * (multiply_by_anisotropic_r(A, ΔᵏQ, 2k + 2))
+        P = P + ΔP
+    end
+    return convert_coefs(P, Float64)
+end
+
+"""
     solve_bilaplace(Q::Polynomial)
 
 Compute a polynomial solution to `Δ²P = Q`. `Q` is required to be homogeneous.
@@ -600,6 +652,7 @@ export
        convert_coefs,
        solve_helmholtz,
        solve_laplace,
+       solve_anisotropic_laplace,
        solve_bilaplace,
        solve_stokes,
        solve_elastostatic,
