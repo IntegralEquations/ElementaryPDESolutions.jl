@@ -1,7 +1,4 @@
 module PolynomialSolutions
-using StaticArrays
-# This (and StaticArrays as well, less problematically) breaks the claim in the
-# paper that the code is completely self-contained
 using LinearAlgebra
 
 """
@@ -118,23 +115,24 @@ end
 Multiply a polynomial `p` by the monomial `r_A^k`, where `r_A = |r^T A^{-1} r|`,
 r = (x_1, x_2, ... x_n]) and `k` is an even positive integer.
 """
-function multiply_by_anisotropic_r(A::SMatrix{N,N,T}, p::Polynomial{N,T}, k::Int) where {N,T}
+# TODO While StaticArrays provides Rational support for `inv`, the problem is that Float64 gets promoted to BigFloat
+# when computing A^{-1} with Float64. Is there a way to get the best of both worlds?
+function multiply_by_anisotropic_r(A::AbstractMatrix{Float64}, p::Polynomial{N,Float64}, k::Int) where {N}
+    @assert LinearAlgebra.checksquare(A) == N
     @assert iseven(k)
     k == 0 && return p
-    # TODO We can't treat rationals (even GenericLinearAlgebra is missing this?)
-    # because of A^{-1}. What is the most generic thing we should allow?
     p = convert_coefs(p, Float64)
     order2coeff = empty(p.order2coeff)
-    invA = LinearAlgebra.inv(A)
+    invA = inv(A)
     for (θ, c) in p.order2coeff
         for i in 1:N
             for j in 1:N
                 θ′ = ntuple(l -> θ[l] + Int(l == j) + Int(l == i), length(θ))
-                order2coeff[θ′] = get(order2coeff, θ′, zero(T)) + c*invA[i, j]
+                order2coeff[θ′] = get(order2coeff, θ′, 0.0) + c*invA[i, j]
             end
         end
     end
-    q = Polynomial(order2coeff)
+    q = convert_coefs(Polynomial(order2coeff), Float64)
     return multiply_by_anisotropic_r(A, q, k - 2)
 end
 
@@ -240,9 +238,21 @@ function gradient(p::Polynomial{N,T}) where {N,T}
     end
 end
 
-laplacian(p::Polynomial{N,T}) where {N,T} = divergence(gradient(p))
+function laplacian(p::Polynomial{N,T}) where {N,T}
+    order2coeff = empty(p.order2coeff)
+    for (θ, c) in p.order2coeff
+        for d in 1:N
+            θ[d] < 2 && continue
+            θ′ = ntuple(i -> i == d ? θ[d] - 2 : θ[i], N)
+            c′ = c * (θ[d]) * (θ[d] - 1)
+            order2coeff[θ′] = get(order2coeff, θ′, zero(T)) + c′
+        end
+    end
+    return Polynomial{N,T}(order2coeff)
+end
 
-function anisotropic_laplacian(A::SMatrix{N,N,T}, p::Polynomial{N,T}) where {N,T}
+function anisotropic_laplacian(A::AbstractMatrix{T}, p::Polynomial{N,T}) where {N,T}
+    @assert LinearAlgebra.checksquare(A) == N
     ∇p = gradient(p)
     Δp = sum(derivative(sum(A[i, j] * ∇p[j] for j in 1:N), i) for i in 1:N)
     return Δp
@@ -485,11 +495,12 @@ Return a polynomial `P` satisfying the anisotropic Laplace equation `∇ ⋅ (A 
 matrix. `Q` is required to be homogeneous. Inverse is anisotropic_laplacian.``
 """
 # Can in principle change Float64 to T here but see multiply_by_anisotropic_r for limitations
-function solve_anisotropic_laplace(A::SMatrix{N, N, Float64}, Q::Polynomial{N,Float64}) where {N,Float64}
+function solve_anisotropic_laplace(A::AbstractMatrix{T}, Q::Polynomial{N,T}) where {N,T}
+    @assert LinearAlgebra.checksquare(A) == N
     @assert A == transpose(A) "anisotropic tensor must be symmetric"
     @assert is_homogeneous(Q) "source term `Q` must be a homogeneous polynomial"
-    #Should we turn this off by default? Expensive.
-    @assert all(LinearAlgebra.eigvals(A) .> 0) "anisotropic tensor must be positive"
+    @assert isposdef(A) "anisotropic tensor must be positive"
+
     n = degree(Q)
     γ = (k, p) -> big(2 * (k + 1) * (2k + 2p + N)) # γₖᵖ
     cₖ = 1 // γ(0, n) # c₀
