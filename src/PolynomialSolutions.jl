@@ -110,7 +110,7 @@ function multiply_by_r(p::Polynomial{N,T}, k::Int) where {N,T}
 end
 
 """
-    multiply_by_anisotropic_r(A::SMatrix{N,N,T}, p::Polynomial, k::Int = 2)
+    multiply_by_anisotropic_anisotropic_r(A::SMatrix{N,N,T}, p::Polynomial, k::Int = 2)
 
 Multiply a polynomial `p` by the monomial `r_A^k`, where `r_A = |r^T A^{-1} r|`,
 r = (x_1, x_2, ... x_n]) and `k` is an even positive integer.
