@@ -115,14 +115,12 @@ end
 Multiply a polynomial `p` by the monomial `r_A^k`, where `r_A = |r^T A^{-1} r|`,
 r = (x_1, x_2, ... x_n]) and `k` is an even positive integer.
 """
-# TODO While StaticArrays provides Rational support for `inv`, the problem is that Float64 gets promoted to BigFloat
-# when computing A^{-1} with Float64. Is there a way to get the best of both worlds?
-function multiply_by_anisotropic_r(A::AbstractMatrix{Float64}, p::Polynomial{N,Float64},
-                                   k::Int) where {N}
+function multiply_by_anisotropic_r(A::AbstractMatrix{T}, p::Polynomial{N,T},
+                                   k::Int) where {N,T}
     @assert LinearAlgebra.checksquare(A) == N
     @assert iseven(k)
     k == 0 && return p
-    p = convert_coefs(p, Float64)
+    #p = convert_coefs(p, T)
     order2coeff = empty(p.order2coeff)
     invA = inv(A)
     for (θ, c) in p.order2coeff
@@ -133,7 +131,8 @@ function multiply_by_anisotropic_r(A::AbstractMatrix{Float64}, p::Polynomial{N,F
             end
         end
     end
-    q = convert_coefs(Polynomial(order2coeff), Float64)
+    q = Polynomial(order2coeff)
+    #q = convert_coefs(Polynomial(order2coeff), T)
     return multiply_by_anisotropic_r(A, q, k - 2)
 end
 
@@ -515,7 +514,9 @@ function solve_anisotropic_laplace(A::AbstractMatrix{T}, Q::Polynomial{N,T}) whe
         ΔP = cₖ * (multiply_by_anisotropic_r(A, ΔᵏQ, 2k + 2))
         P = P + ΔP
     end
-    return convert_coefs(P, Float64)
+    return P
+    #return convert_coefs(P, T)
+    #return convert_coefs(P, Float64)
 end
 
 """
