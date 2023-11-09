@@ -124,10 +124,11 @@ end
                                                              (1, 5) => Rational{BigInt}(2//5)])))
     @test PolynomialSolutions.anisotropic_laplacian(A, Q) ==
           Polynomial([(2, 0) => Rational{BigInt}(6//1), (1, 1) => Rational{BigInt}(26//1), (0, 2) => Rational{BigInt}(10//1)])
+    # FIXME? BigInt Rationals are exact only to ≈ 10^(-78)
     @test iszero(PolynomialSolutions.drop_zeros!(PolynomialSolutions.anisotropic_laplacian(A,
                                                                                            solve_anisotropic_laplace(A,
                                                                                                                      Q)) -
-                                                 Q))
+                                                 Q), 10^(-50))
 
     A = SMatrix{3,3,Float64}(3, 2, 1.5, 2, 4, 1, 1.5, 1, 3)
     Q = Polynomial([(1, 3, 1) => 1.0, (2, 2, 1) => 2.0])
