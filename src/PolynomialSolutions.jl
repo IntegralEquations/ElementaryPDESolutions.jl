@@ -519,7 +519,7 @@ matrix. `Q` is required to be homogeneous. Inverse is anisotropic_laplacian.``
 # Examples
 
 ```jldoctest
-julia> using StaticArrays
+julia> using StaticArrays;
 julia> A = SMatrix{2,2,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, 3 // 1);
 julia> Q = Polynomial([(1, 1) => 2 // 1]);
 julia> P = solve_anisotropic_laplace(A, Q)
@@ -558,7 +558,7 @@ Return a polynomial `P` satisfying the anisotropic advection-diffusion equation
 # Examples
 
 ```jldoctest
-julia> using StaticArrays
+julia> using StaticArrays;
 julia> A = SMatrix{2,2,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, 3 // 1);
 julia> β = SVector{2,Rational{Int64}}(2 // 1, 1 // 1);
 julia> Q = Polynomial([(0, 1) => 2 // 1]);
@@ -588,7 +588,7 @@ Return a polynomial `P` satisfying the anisotropic advection equation `β⋅∇P
 # Examples
 
 ```jldoctest
-julia> using StaticArrays
+julia> using StaticArrays;
 julia> β = SVector{2,Rational{Int64}}(2 // 1, 1 // 1);
 julia> Q = Polynomial([(0, 0) => 2 // 1]);
 julia> P = solve_anisotropic_advect(β, Q)
