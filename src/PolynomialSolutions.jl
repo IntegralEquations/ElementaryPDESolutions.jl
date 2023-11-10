@@ -515,6 +515,16 @@ end
 
 Return a polynomial `P` satisfying the anisotropic Laplace equation `∇ ⋅ (A ∇P) = Q`, `A` a symmetric positive definite
 matrix. `Q` is required to be homogeneous. Inverse is anisotropic_laplacian.``
+
+# Examples
+
+```jldoctest
+julia> using StaticArrays
+julia> A = SMatrix{2,2,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, 3 // 1);
+julia> Q = Polynomial([(1, 1) => 2 // 1]);
+julia> P = solve_anisotropic_laplace(A, Q)
+-3//400x⁴ + 11//100x³y + 11//150xy³ - 2//25x²y² - 1//300y⁴
+```
 """
 function solve_anisotropic_laplace(A::AbstractMatrix{T}, Q::Polynomial{N,T}) where {N,T}
     @assert LinearAlgebra.checksquare(A) == N
@@ -544,6 +554,17 @@ end
 
 Return a polynomial `P` satisfying the anisotropic advection-diffusion equation
 `∇ ⋅ (A ∇P) + β⋅∇P = Q`, `A` a symmetric positive definite matrix.
+
+# Examples
+
+```jldoctest
+julia> using StaticArrays
+julia> A = SMatrix{2,2,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, 3 // 1);
+julia> β = SVector{2,Rational{Int64}}(2 // 1, 1 // 1);
+julia> Q = Polynomial([(0, 1) => 2 // 1]);
+julia> P = solve_anisotropic_advect_diffuse(A, β, Q)
+-14//25y - 28//25x + 16//25xy + 9//25y² - 4//25x²
+```
 """
 function solve_anisotropic_advect_diffuse(A::AbstractMatrix{T}, β::AbstractVector{T},
                                           Q::Polynomial{N,T}) where {N,T}
@@ -563,6 +584,15 @@ end
     solve_anisotropic_advect(β::AbstractVector{T}, Q::Polynomial)
 
 Return a polynomial `P` satisfying the anisotropic advection equation `β⋅∇P = Q`.
+
+# Examples
+
+```jldoctest
+julia> using StaticArrays
+julia> β = SVector{2,Rational{Int64}}(2 // 1, 1 // 1);
+julia> Q = Polynomial([(0, 0) => 2 // 1]);
+julia> P = solve_anisotropic_advect(β, Q)
+2//5y + 4//5x
 """
 function solve_anisotropic_advect(β::AbstractVector{T}, Q::Polynomial{N,T}) where {N,T}
     @assert length(β) == N "β must be dimensionally consistent with Q"

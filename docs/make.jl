@@ -6,7 +6,7 @@ DocMeta.setdocmeta!(PolynomialSolutions, :DocTestSetup, :(using PolynomialSoluti
 
 makedocs(;
          modules=[PolynomialSolutions],
-         authors="Luiz M. Faria",
+         authors="Thomas G. Anderson, Luiz M. Faria",
          repo="https://github.com/WaveProp/PolynomialSolutions.jl/blob/{commit}{path}#{line}",
          sitename="PolynomialSolutions.jl",
          format=Documenter.HTML(;
