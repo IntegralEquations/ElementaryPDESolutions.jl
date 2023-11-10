@@ -92,7 +92,7 @@ end
 """
     multiply_by_r(p::Polynomial, k::Int = 2)
 
-Multiply a polynomial `p` by the monomial `r^k`, where `r = |𝐱|` and `k` is an
+Multiply a polynomial `p` by the polynomial `r^k`, where `r = |𝐱|` and `k` is an
 even positive integer.
 """
 function multiply_by_r(p::Polynomial{N,T}, k::Int) where {N,T}
@@ -110,10 +110,10 @@ function multiply_by_r(p::Polynomial{N,T}, k::Int) where {N,T}
 end
 
 """
-    multiply_by_anisotropic_anisotropic_r(A::SMatrix{N,N,T}, p::Polynomial, k::Int = 2)
+    multiply_by_anisotropic_anisotropic_r(A::AbstractMatrix{T}, p::Polynomial, k::Int = 2)
 
-Multiply a polynomial `p` by the monomial `r_A^k`, where `r_A = |r^T A^{-1} r|`,
-r = (x_1, x_2, ... x_n]) and `k` is an even positive integer.
+Multiply a polynomial `p` by the polynomial `r_A^k`, where `r_A = |r^T A^{-1} r|`,
+r = (x_1, x_2, ..., x_n]), and `k` is an even positive integer.
 """
 function multiply_by_anisotropic_r(A::AbstractMatrix{T}, p::Polynomial{N,T},
                                    k::Int) where {N,T}
@@ -134,6 +134,27 @@ function multiply_by_anisotropic_r(A::AbstractMatrix{T}, p::Polynomial{N,T},
     q = Polynomial(order2coeff)
     #q = convert_coefs(Polynomial(order2coeff), T)
     return multiply_by_anisotropic_r(A, q, k - 2)
+end
+
+"""
+    multiply_by_anisotropic_β_r(β::AbstractVector{T}, p::Polynomial, k::Int)
+
+Multiply a polynomial `p` by the polynomial β ⋅ 𝐫, 𝐫 = (x_1, x_2, ..., x_n]),
+and `k` is a non-negative integer.
+"""
+function multiply_by_anisotropic_β_r(β::AbstractVector{T}, p::Polynomial{N,T},
+                                     k::Int) where {N,T}
+    @assert length(β) == N
+    @assert k ≥ 0
+    k == 0 && return p
+    order2coeff = empty(p.order2coeff)
+    for (θ, c) in p.order2coeff
+        for i in 1:N
+            θ′ = ntuple(l -> θ[l] + Int(l == i), length(θ))
+            order2coeff[θ′] = get(order2coeff, θ′, 0.0) + c * β[i]
+        end
+    end
+    return multiply_by_anisotropic_β_r(β, Polynomial(order2coeff), k - 1)
 end
 
 """
@@ -490,12 +511,11 @@ function solve_laplace(Q::Polynomial{N,T}) where {N,T}
 end
 
 """
-    solve_anisotropic_laplace(A::SMatrix{N, N, Float64}, Q::Polynomial)
+    solve_anisotropic_laplace(A::AbstractMatrix{T}, Q::Polynomial)
 
 Return a polynomial `P` satisfying the anisotropic Laplace equation `∇ ⋅ (A ∇P) = Q`, `A` a symmetric positive definite
 matrix. `Q` is required to be homogeneous. Inverse is anisotropic_laplacian.``
 """
-# Can in principle change Float64 to T here but see multiply_by_anisotropic_r for limitations
 function solve_anisotropic_laplace(A::AbstractMatrix{T}, Q::Polynomial{N,T}) where {N,T}
     @assert LinearAlgebra.checksquare(A) == N
     @assert A == transpose(A) "anisotropic tensor must be symmetric"
@@ -514,9 +534,49 @@ function solve_anisotropic_laplace(A::AbstractMatrix{T}, Q::Polynomial{N,T}) whe
         ΔP = cₖ * (multiply_by_anisotropic_r(A, ΔᵏQ, 2k + 2))
         P = P + ΔP
     end
-    return P
-    #return convert_coefs(P, T)
+    #return P
+    return convert_coefs(P, T)
     #return convert_coefs(P, Float64)
+end
+
+"""
+    solve_anisotropic_advection_diffusion(A::SMatrix{N, N, T}, β::AbstractVector{T}, Q::Polynomial)
+
+Return a polynomial `P` satisfying the anisotropic advection-diffusion equation
+`∇ ⋅ (A ∇P) + β⋅∇P = Q`, `A` a symmetric positive definite matrix.
+"""
+function solve_anisotropic_advect_diffuse(A::AbstractMatrix{T}, β::AbstractVector{T},
+                                          Q::Polynomial{N,T}) where {N,T}
+    @assert length(β) == N "β must be dimensionally consistent with Q"
+
+    n = degree(Q)
+    u_ₙ = solve_anisotropic_advect(β, deepcopy(Q))
+    P = Polynomial{N,T}() + u_ₙ
+    for i in (n - 1):-1:0
+        u_ₙ = solve_anisotropic_advect(β, -anisotropic_laplacian(A, u_ₙ))
+        P = P + u_ₙ
+    end
+    return P
+end
+
+"""
+    solve_anisotropic_advect(β::AbstractVector{T}, Q::Polynomial)
+
+Return a polynomial `P` satisfying the anisotropic advection equation `β⋅∇P = Q`.
+"""
+function solve_anisotropic_advect(β::AbstractVector{T}, Q::Polynomial{N,T}) where {N,T}
+    @assert length(β) == N "β must be dimensionally consistent with Q"
+
+    n = degree(Q)
+    betagradellq = deepcopy(Q)
+    cₗ = 1 # c₀
+    P = cₗ * multiply_by_anisotropic_β_r(β, Q, 1)
+    for l in 1:n
+        cₗ = -cₗ / ((l + 1) * norm(β)^2)
+        betagradellq = sum(β[i] * gradient(betagradellq)[i] for i in 1:N)
+        P = P + cₗ * multiply_by_anisotropic_β_r(β, betagradellq, l + 1)
+    end
+    return (1 / norm(β)^2) * P
 end
 
 """
@@ -667,6 +727,8 @@ export
        solve_helmholtz,
        solve_laplace,
        solve_anisotropic_laplace,
+       solve_anisotropic_advect,
+       solve_anisotropic_advect_diffuse,
        solve_bilaplace,
        solve_stokes,
        solve_elastostatic,
