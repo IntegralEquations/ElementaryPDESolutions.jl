@@ -127,7 +127,7 @@ function multiply_by_anisotropic_r(A::AbstractMatrix{T}, p::Polynomial{N,T},
         for i in 1:N
             for j in 1:N
                 θ′ = ntuple(l -> θ[l] + Int(l == j) + Int(l == i), length(θ))
-                order2coeff[θ′] = get(order2coeff, θ′, 0.0) + c * invA[i, j]
+                order2coeff[θ′] = get(order2coeff, θ′, zero(T)) + c * invA[i, j]
             end
         end
     end
@@ -151,7 +151,7 @@ function multiply_by_anisotropic_β_r(β::AbstractVector{T}, p::Polynomial{N,T},
     for (θ, c) in p.order2coeff
         for i in 1:N
             θ′ = ntuple(l -> θ[l] + Int(l == i), length(θ))
-            order2coeff[θ′] = get(order2coeff, θ′, 0.0) + c * β[i]
+            order2coeff[θ′] = get(order2coeff, θ′, zero(T)) + c * β[i]
         end
     end
     return multiply_by_anisotropic_β_r(β, Polynomial(order2coeff), k - 1)
@@ -572,11 +572,11 @@ function solve_anisotropic_advect(β::AbstractVector{T}, Q::Polynomial{N,T}) whe
     cₗ = 1 # c₀
     P = cₗ * multiply_by_anisotropic_β_r(β, Q, 1)
     for l in 1:n
-        cₗ = -cₗ / ((l + 1) * norm(β)^2)
+        cₗ = -cₗ / ((l + 1) * sum(β[i]^2 for i in 1:N))
         betagradellq = sum(β[i] * gradient(betagradellq)[i] for i in 1:N)
         P = P + cₗ * multiply_by_anisotropic_β_r(β, betagradellq, l + 1)
     end
-    return (1 / norm(β)^2) * P
+    return (1 / sum(β[i]^2 for i in 1:N)) * P
 end
 
 """

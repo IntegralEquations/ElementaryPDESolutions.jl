@@ -116,37 +116,25 @@ end
     Q = Polynomial([(0, 0) => 1.0, (1, 0) => 2.0, (0, 1) => 3.0])
     @test_throws AssertionError solve_anisotropic_laplace(A, Q)
 
-    A = SMatrix{2,2,Rational{BigInt}}(2 // 1, 1 // 1, 1 // 1, 3 // 1)
-    Q = Polynomial([(1, 3) => Rational{BigInt}(1 // 1), (2, 2) => Rational{BigInt}(1 // 1)])
-    rAQ = PolynomialSolutions.multiply_by_anisotropic_r(A, Q, 2)
-    @test iszero(PolynomialSolutions.drop_zeros!(rAQ -
-                                                 Polynomial([(3, 3) => Rational{BigInt}(1 //
-                                                                                        5),
-                                                             (4, 2) => Rational{BigInt}(3 //
-                                                                                        5),
-                                                             (1, 5) => Rational{BigInt}(2 //
-                                                                                        5)])))
-    @test PolynomialSolutions.anisotropic_laplacian(A, Q) ==
-          Polynomial([(2, 0) => Rational{BigInt}(6 // 1),
-                      (1, 1) => Rational{BigInt}(26 // 1),
-                      (0, 2) => Rational{BigInt}(10 // 1)])
-    # FIXME? BigInt Rationals are exact only to ≈ 10^(-78)
-    @test iszero(PolynomialSolutions.drop_zeros!(PolynomialSolutions.anisotropic_laplacian(A,
-                                                                                           solve_anisotropic_laplace(A,
-                                                                                                                     Q)) -
-                                                 Q), 10^(-50))
-
-    A = SMatrix{3,3,Float64}(3, 2, 1.5, 2, 4, 1, 1.5, 1, 3)
-    Q = Polynomial([(1, 3, 1) => 1.0, (2, 2, 1) => 2.0])
-    @test iszero(PolynomialSolutions.drop_zeros!(PolynomialSolutions.anisotropic_laplacian(A,
-                                                                                           solve_anisotropic_laplace(A,
-                                                                                                                     Q)) -
-                                                 Q, 10^(-15)))
     # test that you cannot pass an asymmetric matrix
     A = SMatrix{3,3,Float64}(3, 3, 1.5, 2, 4, 1, 1.5, 1, 3)
     # test that you cannot pass a non-positive matrix
     A = SMatrix{3,3,Float64}(3, 5, 1.5, 5, 4, 1, 1.5, 1, 3)
     @test_throws AssertionError solve_anisotropic_laplace(A, Q)
+
+    # Test Rationals
+    N = 2
+    A = SMatrix{N,N,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, 3 // 1)
+    g = Polynomial([(1, 3) => 2 // 1])
+    v = solve_anisotropic_laplace(A, g)
+    @test PolynomialSolutions.anisotropic_laplacian(A, v) == g
+
+    N = 3
+    A = SMatrix{N,N,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, 1 // 1, 3 // 1, 1 // 1, 1 // 1,
+                                     1 // 1, 3 // 1)
+    g = Polynomial([(1, 3, 2) => 2 // 1])
+    v = solve_anisotropic_laplace(A, g)
+    @test PolynomialSolutions.anisotropic_laplacian(A, v) == g
 end
 
 @testset "Anisotropic Advection/Diffusion" begin
@@ -195,6 +183,16 @@ end
                                                  sum(β[i] *
                                                      PolynomialSolutions.gradient(v)[i]
                                                      for i in 1:N), 10^(-13)))
+
+    # Rationals
+    N = 2
+    A = SMatrix{2,2,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, 3 // 1)
+    β = SVector{2,Rational{Int64}}(2 // 1, 1 // 1)
+    g = Polynomial([(1, 1) => 2 // 1])
+    v = solve_anisotropic_advect_diffuse(A, β, g)
+    @test PolynomialSolutions.anisotropic_laplacian(A, v) + sum(β[i] *
+                                                                PolynomialSolutions.gradient(v)[i] for i in 1:N) ==
+          g
 end
 
 @testset "Bilaplace" begin
