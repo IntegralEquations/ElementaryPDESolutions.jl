@@ -119,8 +119,11 @@ function multiply_by_anisotropic_r(A::AbstractMatrix{T}, p::Polynomial{N,T},
                                    k::Int) where {N,T}
     @assert LinearAlgebra.checksquare(A) == N
     @assert iseven(k)
+    # This slows us down, but prevents a degradation relative to Base.LinearAlgebra
+    # when `using StaticArrays`
+    # https://github.com/JuliaArrays/StaticArrays.jl/issues/434
+    @assert det(A) ≠ zero(T) "anisotropic tensor must be invertible"
     k == 0 && return p
-    #p = convert_coefs(p, T)
     order2coeff = empty(p.order2coeff)
     invA = inv(A)
     for (θ, c) in p.order2coeff
@@ -132,7 +135,6 @@ function multiply_by_anisotropic_r(A::AbstractMatrix{T}, p::Polynomial{N,T},
         end
     end
     q = Polynomial(order2coeff)
-    #q = convert_coefs(Polynomial(order2coeff), T)
     return multiply_by_anisotropic_r(A, q, k - 2)
 end
 
@@ -513,16 +515,18 @@ end
 """
     solve_anisotropic_laplace(A::AbstractMatrix{T}, Q::Polynomial)
 
-Return a polynomial `P` satisfying the anisotropic Laplace equation `∇ ⋅ (A ∇P) = Q`, `A` a symmetric positive definite
+Return a polynomial `P` satisfying the anisotropic Laplace equation `∇ ⋅ (A ∇P) = Q`, `A` an invertible
 matrix. `Q` is required to be homogeneous. Inverse is anisotropic_laplacian.``
 
 # Examples
 
 ```jldoctest
-julia> using StaticArrays;
-julia> A = SMatrix{2,2,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, 3 // 1);
-julia> Q = Polynomial([(1, 1) => 2 // 1]);
-julia> P = solve_anisotropic_laplace(A, Q)
+A = SMatrix{2,2,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, 3 // 1)
+Q = Polynomial([(1, 1) => 2 // 1])
+P = solve_anisotropic_laplace(A, Q)
+
+# output
+
 -3//400x⁴ + 11//100x³y + 11//150xy³ - 2//25x²y² - 1//300y⁴
 ```
 """
@@ -530,7 +534,6 @@ function solve_anisotropic_laplace(A::AbstractMatrix{T}, Q::Polynomial{N,T}) whe
     @assert LinearAlgebra.checksquare(A) == N
     @assert A == transpose(A) "anisotropic tensor must be symmetric"
     @assert is_homogeneous(Q) "source term `Q` must be a homogeneous polynomial"
-    @assert isposdef(A) "anisotropic tensor must be positive"
 
     n = degree(Q)
     γ = (k, p) -> big(2 * (k + 1) * (2k + 2p + N)) # γₖᵖ
@@ -550,7 +553,7 @@ function solve_anisotropic_laplace(A::AbstractMatrix{T}, Q::Polynomial{N,T}) whe
 end
 
 """
-    solve_anisotropic_advection_diffusion(A::SMatrix{N, N, T}, β::AbstractVector{T}, Q::Polynomial)
+    solve_anisotropic_advect_diffuse(A::SMatrix{N, N, T}, β::AbstractVector{T}, Q::Polynomial)
 
 Return a polynomial `P` satisfying the anisotropic advection-diffusion equation
 `∇ ⋅ (A ∇P) + β⋅∇P = Q`, `A` a symmetric positive definite matrix.
@@ -558,11 +561,13 @@ Return a polynomial `P` satisfying the anisotropic advection-diffusion equation
 # Examples
 
 ```jldoctest
-julia> using StaticArrays;
-julia> A = SMatrix{2,2,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, 3 // 1);
-julia> β = SVector{2,Rational{Int64}}(2 // 1, 1 // 1);
-julia> Q = Polynomial([(0, 1) => 2 // 1]);
-julia> P = solve_anisotropic_advect_diffuse(A, β, Q)
+A = SMatrix{2,2,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, 3 // 1)
+β = SVector{2,Rational{Int64}}(2 // 1, 1 // 1)
+Q = Polynomial([(0, 1) => 2 // 1])
+P = solve_anisotropic_advect_diffuse(A, β, Q)
+
+# output
+
 -14//25y - 28//25x + 16//25xy + 9//25y² - 4//25x²
 ```
 """
@@ -588,11 +593,14 @@ Return a polynomial `P` satisfying the anisotropic advection equation `β⋅∇P
 # Examples
 
 ```jldoctest
-julia> using StaticArrays;
-julia> β = SVector{2,Rational{Int64}}(2 // 1, 1 // 1);
-julia> Q = Polynomial([(0, 0) => 2 // 1]);
-julia> P = solve_anisotropic_advect(β, Q)
+β = SVector{2,Rational{Int64}}(2 // 1, 1 // 1)
+Q = Polynomial([(0, 0) => 2 // 1])
+P = solve_anisotropic_advect(β, Q)
+
+# output
+
 2//5y + 4//5x
+````
 """
 function solve_anisotropic_advect(β::AbstractVector{T}, Q::Polynomial{N,T}) where {N,T}
     @assert length(β) == N "β must be dimensionally consistent with Q"

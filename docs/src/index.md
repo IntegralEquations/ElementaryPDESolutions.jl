@@ -41,6 +41,9 @@ The following PDEs are currently implemented (see their specific [Docstrings](@r
 further details):
 
 - [`solve_laplace`](@ref)
+- [`solve_anisotropic_laplace`](@ref)
+- [`solve_anisotropic_advect`](@ref)
+- [`solve_anisotropic_advect_diffuse`](@ref)
 - [`solve_helmholtz`](@ref)
 - [`solve_bilaplace`](@ref)
 - [`solve_stokes`](@ref)

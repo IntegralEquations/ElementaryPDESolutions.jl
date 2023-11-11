@@ -1,7 +1,8 @@
 using PolynomialSolutions
 using Documenter
 
-DocMeta.setdocmeta!(PolynomialSolutions, :DocTestSetup, :(using PolynomialSolutions);
+DocMeta.setdocmeta!(PolynomialSolutions, :DocTestSetup,
+                    :(using PolynomialSolutions, StaticArrays);
                     recursive=true)
 
 makedocs(;
