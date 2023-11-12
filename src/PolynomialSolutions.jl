@@ -448,7 +448,7 @@ function _print_variable(io, i, p)
             print(io, "z", "^", p)
         end
     else
-        print(io, "x", i, "^", p)
+        print(io, "x_", i, "^", p)
     end
 end
 
