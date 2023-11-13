@@ -113,7 +113,7 @@ end
     multiply_by_anisotropic_anisotropic_r(A::AbstractMatrix{T}, p::Polynomial, k::Int = 2)
 
 Multiply a polynomial `p` by the polynomial `r_A^k`, where `r_A = |r^T A^{-1} r|`,
-r = (x_1, x_2, ..., x_n]), and `k` is an even positive integer.
+r = (x_1, x_2, ..., x_n), and `k` is an even positive integer.
 """
 function multiply_by_anisotropic_r(A::AbstractMatrix{T}, p::Polynomial{N,T},
                                    k::Int) where {N,T}
@@ -141,7 +141,7 @@ end
 """
     multiply_by_anisotropic_β_r(β::AbstractVector{T}, p::Polynomial, k::Int)
 
-Multiply a polynomial `p` by the polynomial β ⋅ 𝐫, 𝐫 = (x_1, x_2, ..., x_n]),
+Multiply a polynomial `p` by the polynomial β ⋅ 𝐫, 𝐫 = (x_1, x_2, ..., x_n),
 and `k` is a non-negative integer.
 """
 function multiply_by_anisotropic_β_r(β::AbstractVector{T}, p::Polynomial{N,T},
@@ -516,7 +516,7 @@ end
     solve_anisotropic_laplace(A::AbstractMatrix{T}, Q::Polynomial)
 
 Return a polynomial `P` satisfying the anisotropic Laplace equation `∇ ⋅ (A ∇P) = Q`, `A` an invertible
-matrix. `Q` is required to be homogeneous. Inverse is anisotropic_laplacian.``
+matrix. `Q` is required to be homogeneous. Inverse is [`anisotropic_laplacian`](@ref).
 
 # Examples
 
