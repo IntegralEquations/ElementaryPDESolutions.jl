@@ -1,4 +1,5 @@
 using PolynomialSolutions
+using StaticArrays
 using Test
 using PolynomialSolutions: laplacian, divergence, gradient, curl, convert_coefs
 using Aqua
@@ -96,6 +97,123 @@ end
     # test that you cannot pass an inhomogenous polynomials
     Q = Polynomial([(0, 0) => 1, (1, 0) => 2, (0, 1) => 3])
     @test_throws AssertionError solve_laplace(Q)
+end
+
+@testset "Anisotropic Laplace" begin
+    A = SMatrix{2,2,Float64}(2, 1, 1, 3)
+    Q = Polynomial([(1, 3) => 1.0, (2, 2) => 1.0])
+    rAQ = PolynomialSolutions.multiply_by_anisotropic_r(A, Q, 2)
+    @test iszero(PolynomialSolutions.drop_zeros!(rAQ -
+                                                 Polynomial([(3, 3) => 0.2, (4, 2) => 0.6,
+                                                             (1, 5) => 0.4]), 10^(-15)))
+    @test PolynomialSolutions.anisotropic_laplacian(A, Q) ==
+          Polynomial([(2, 0) => 6.0, (1, 1) => 26.0, (0, 2) => 10.0])
+    @test iszero(PolynomialSolutions.drop_zeros!(PolynomialSolutions.anisotropic_laplacian(A,
+                                                                                           solve_anisotropic_laplace(A,
+                                                                                                                     Q)) -
+                                                 Q, 10^(-15)))
+
+    # test that you cannot pass an inhomogenous polynomial
+    Q = Polynomial([(0, 0) => 1.0, (1, 0) => 2.0, (0, 1) => 3.0])
+    @test_throws AssertionError solve_anisotropic_laplace(A, Q)
+
+    # test that you cannot pass an asymmetric matrix
+    A = SMatrix{3,3,Float64}(3, 3, 1.5, 2, 4, 1, 1.5, 1, 3)
+
+    # test that you cannot pass a non-invertible matrix
+    A = SMatrix{3,3,Float64}(3, 5, 0.0, 5, 4, 0.0, 0.0, 0.0, 0.0)
+    Q = Polynomial([(1, 3, 1) => 1.0, (2, 2, 1) => 1.0])
+    @test_throws AssertionError solve_anisotropic_laplace(A, Q)
+    A = SMatrix{3,3,Rational{Int64}}(3 // 1, 5 // 1, 0 // 1, 5 // 1, 4 // 1, 0 // 1, 0 // 1,
+                                     0 // 1, 0 // 1)
+    Q = Polynomial([(1, 3, 1) => 1 // 1, (2, 2, 1) => 1 // 1])
+    @test_throws AssertionError solve_anisotropic_laplace(A, Q)
+
+    # Test Rationals
+    N = 2
+    A = SMatrix{N,N,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, 3 // 1)
+    g = Polynomial([(1, 3) => 2 // 1])
+    v = solve_anisotropic_laplace(A, g)
+    @test PolynomialSolutions.anisotropic_laplacian(A, v) == g
+
+    N = 3
+    A = SMatrix{N,N,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, 1 // 1, 3 // 1, 1 // 1, 1 // 1,
+                                     1 // 1, 3 // 1)
+    g = Polynomial([(1, 3, 2) => 2 // 1])
+    v = solve_anisotropic_laplace(A, g)
+    @test PolynomialSolutions.anisotropic_laplacian(A, v) == g
+
+    # Test non-positive anisotropic tensor
+    N = 2
+    A = SMatrix{N,N,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, -3 // 1)
+    g = Polynomial([(1, 3) => 2 // 1])
+    v = solve_anisotropic_laplace(A, g)
+    @test PolynomialSolutions.anisotropic_laplacian(A, v) == g
+end
+
+@testset "Anisotropic Advection/Diffusion" begin
+    # Advection
+    N = 2
+    β = SVector{N,Float64}(2, 1)
+    g = Polynomial([(1, 3) => 1.0])
+    v = solve_anisotropic_advect(β, g)
+    @test iszero(PolynomialSolutions.drop_zeros!(g -
+                                                 sum(β[i] *
+                                                     PolynomialSolutions.gradient(v)[i]
+                                                     for i in 1:N), 10^(-15)))
+
+    N = 3
+    β = SVector{N,Float64}(2.0, 1.0, 5.0)
+    g = Polynomial([(1, 2, 5) => 2.0])
+    v = solve_anisotropic_advect(β, g)
+    @test iszero(PolynomialSolutions.drop_zeros!(g -
+                                                 sum(β[i] *
+                                                     PolynomialSolutions.gradient(v)[i]
+                                                     for i in 1:N), 10^(-14)))
+
+    # Advection + Diffusion
+    N = 2
+    A = SMatrix{N,N,Float64}(2, 1, 1, 3)
+    β = SVector{N,Float64}(2, 1)
+    f = Polynomial([(1, 3) => 1.0])
+    v = solve_anisotropic_advect_diffuse(A, β, f)
+    @test iszero(PolynomialSolutions.drop_zeros!(f -
+                                                 PolynomialSolutions.anisotropic_laplacian(A,
+                                                                                           v)
+                                                 -
+                                                 sum(β[i] *
+                                                     PolynomialSolutions.gradient(v)[i]
+                                                     for i in 1:N), 10^(-14)))
+
+    N = 3
+    A = SMatrix{N,N,Float64}(3, 2, 1.5, 2, 4, 1, 1.5, 1, 3)
+    β = SVector{N,Float64}(2, 3, 1)
+    f = Polynomial([(1, 3, 1) => 1.0, (2, 2, 1) => 2.0])
+    v = solve_anisotropic_advect_diffuse(A, β, f)
+    @test iszero(PolynomialSolutions.drop_zeros!(f -
+                                                 PolynomialSolutions.anisotropic_laplacian(A,
+                                                                                           v)
+                                                 -
+                                                 sum(β[i] *
+                                                     PolynomialSolutions.gradient(v)[i]
+                                                     for i in 1:N), 10^(-13)))
+
+    # Rationals
+    N = 2
+    A = SMatrix{2,2,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, 3 // 1)
+    β = SVector{2,Rational{Int64}}(2 // 1, 1 // 1)
+    g = Polynomial([(1, 1) => 2 // 1])
+    v = solve_anisotropic_advect_diffuse(A, β, g)
+    @test PolynomialSolutions.anisotropic_laplacian(A, v) + sum(β[i] *
+                                                                PolynomialSolutions.gradient(v)[i] for i in 1:N) ==
+          g
+
+    # Test non-positive anisotropic tensor
+    A = SMatrix{N,N,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, -3 // 1)
+    v = solve_anisotropic_advect_diffuse(A, β, g)
+    @test PolynomialSolutions.anisotropic_laplacian(A, v) + sum(β[i] *
+                                                                PolynomialSolutions.gradient(v)[i] for i in 1:N) ==
+          g
 end
 
 @testset "Bilaplace" begin

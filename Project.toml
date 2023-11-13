@@ -1,7 +1,10 @@
 name = "PolynomialSolutions"
 uuid = "88a69b33-da0f-4502-8c8c-d680cf4d883b"
-authors = ["Luiz M. Faria"]
+authors = ["Thomas G. Anderson", "Luiz M. Faria"]
 version = "0.1.0"
+
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [compat]
 julia = "1.6"
