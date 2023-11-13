@@ -540,7 +540,6 @@ function solve_anisotropic_laplace(A::AbstractMatrix{T}, Q::Polynomial{N,T}) whe
     @assert LinearAlgebra.checksquare(A) == N
     @assert A == transpose(A) "anisotropic tensor must be symmetric"
     @assert is_homogeneous(Q) "source term `Q` must be a homogeneous polynomial"
-    @warn T <: Integer "This routine has a converted-to return type identical to input; integer input likely to fail"
 
     n = degree(Q)
     γ = (k, p) -> big(2 * (k + 1) * (2k + 2p + N)) # γₖᵖ
