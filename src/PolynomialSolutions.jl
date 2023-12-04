@@ -141,7 +141,7 @@ end
 """
     multiply_by_anisotropic_β_r(β::AbstractVector{T}, p::Polynomial, k::Int)
 
-Multiply a polynomial `p` by the polynomial β ⋅ 𝐫, 𝐫 = (x_1, x_2, ..., x_n),
+Multiply a polynomial `p` by the polynomial (β ⋅ 𝐫)ᵏ, 𝐫 = (x_1, x_2, ..., x_n),
 and `k` is a non-negative integer.
 """
 function multiply_by_anisotropic_β_r(β::AbstractVector{T}, p::Polynomial{N,T},
