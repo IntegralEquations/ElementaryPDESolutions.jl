@@ -1,14 +1,14 @@
-using PolynomialSolutions
+using ElementaryPDESolutions
 using StaticArrays
 using Test
-using PolynomialSolutions: laplacian, divergence, gradient, curl, convert_coefs
+using ElementaryPDESolutions: laplacian, divergence, gradient, curl, convert_coefs
 using Aqua
 
 # run aqua tests. We disable `unbound_args`` because otherwise signatures like
 # `solve_stokes(Q::NTuple{N,PolynomialSolution{N,T}})` fail due to the
 # possibility that `Q` is an empty tuple, in which case the element type is not
 # defined. Not sure how to fix this, so for now we just disable the test.
-Aqua.test_all(PolynomialSolutions; unbound_args=false)
+Aqua.test_all(ElementaryPDESolutions; unbound_args=false)
 
 @testset "Polynomials" begin
     p1 = Polynomial((0, 0) => 1)
@@ -26,44 +26,44 @@ Aqua.test_all(PolynomialSolutions; unbound_args=false)
     @test typeof(p) == Polynomial{2,Int64}
     @test typeof(q) == Polynomial{2,Float64}
 
-    @test PolynomialSolutions.degree(p1) == 0
-    @test PolynomialSolutions.degree(Polynomial((2, 0) => 1)) == 2
-    @test PolynomialSolutions.degree(Polynomial((2, 2, 3) => 1)) == 7
+    @test ElementaryPDESolutions.degree(p1) == 0
+    @test ElementaryPDESolutions.degree(Polynomial((2, 0) => 1)) == 2
+    @test ElementaryPDESolutions.degree(Polynomial((2, 2, 3) => 1)) == 7
 
     @test 2 * p1 == Polynomial((0, 0) => 2)
     @test (1 + 0.2 * im) * p1 == Polynomial((0, 0) => 1 + 0.2 * im)
 
-    @test PolynomialSolutions.derivative(Polynomial((0, 0) => 1), 1) ==
+    @test ElementaryPDESolutions.derivative(Polynomial((0, 0) => 1), 1) ==
           Polynomial((0, 0) => 0)
-    @test PolynomialSolutions.derivative(Polynomial((1, 0) => 1), 1) ==
+    @test ElementaryPDESolutions.derivative(Polynomial((1, 0) => 1), 1) ==
           Polynomial((0, 0) => 1)
-    @test PolynomialSolutions.derivative(Polynomial((1, 0) => 1), 2) ==
+    @test ElementaryPDESolutions.derivative(Polynomial((1, 0) => 1), 2) ==
           Polynomial((0, 0) => 0)
-    @test PolynomialSolutions.derivative(Polynomial((1, 3) => 2), 2) ==
+    @test ElementaryPDESolutions.derivative(Polynomial((1, 3) => 2), 2) ==
           Polynomial((1, 2) => 6)
 
-    @test PolynomialSolutions.laplacian(Polynomial((2, 0) => 1)) == Polynomial((0, 0) => 2)
-    @test PolynomialSolutions.laplacian(Polynomial((2, 2) => 1)) ==
+    @test ElementaryPDESolutions.laplacian(Polynomial((2, 0) => 1)) == Polynomial((0, 0) => 2)
+    @test ElementaryPDESolutions.laplacian(Polynomial((2, 2) => 1)) ==
           Polynomial((2, 0) => 2) + Polynomial((0, 2) => 2)
-    @test PolynomialSolutions.laplacian(Polynomial((3, 1) => 3)) == Polynomial((1, 1) => 18)
+    @test ElementaryPDESolutions.laplacian(Polynomial((3, 1) => 3)) == Polynomial((1, 1) => 18)
 
     for P in (Polynomial((2, 0) => 1), Polynomial((2, 2) => 1), Polynomial((3, 1) => 3))
-        @test PolynomialSolutions.laplacian(P) == divergence(gradient(P))
+        @test ElementaryPDESolutions.laplacian(P) == divergence(gradient(P))
     end
 
     P = (Polynomial((3, 1, 1) => 1), Polynomial((1, 2, 5) => 1), Polynomial((1, 2, 3) => 1))
     curlP = (Polynomial(((1, 1, 3) => 2, (1, 2, 4) => -5)),
              Polynomial(((3, 1, 0) => 1, (0, 2, 3) => -1)),
              Polynomial(((0, 2, 5) => 1, (3, 0, 1) => -1)))
-    PolynomialSolutions.curl(P) == curlP
+    ElementaryPDESolutions.curl(P) == curlP
     for k in 0:4, j in 0:4, i in 0:4
         P = (Polynomial((i, j, k) => 1), Polynomial((j, i, k) => 1),
              Polynomial((k, j, i) => 1))
-        @test iszero(PolynomialSolutions.divergence(PolynomialSolutions.curl(P)))
+        @test iszero(ElementaryPDESolutions.divergence(ElementaryPDESolutions.curl(P)))
         Q = Polynomial((i, j, k) => 1)
-        @test all(iszero, PolynomialSolutions.curl(PolynomialSolutions.gradient(Q)))
-        @test PolynomialSolutions.curl(PolynomialSolutions.curl(P)) ==
-              PolynomialSolutions.gradient(PolynomialSolutions.divergence(P)) .-
+        @test all(iszero, ElementaryPDESolutions.curl(ElementaryPDESolutions.gradient(Q)))
+        @test ElementaryPDESolutions.curl(ElementaryPDESolutions.curl(P)) ==
+              ElementaryPDESolutions.gradient(ElementaryPDESolutions.divergence(P)) .-
               laplacian.(P)
     end
 end
@@ -74,11 +74,11 @@ end
             # 2d
             Q = Polynomial((i, j) => 1 // 1)
             P = @inferred solve_helmholtz(Q; k=κ)
-            @test PolynomialSolutions.laplacian(P) + κ^2 * P == Q
+            @test ElementaryPDESolutions.laplacian(P) + κ^2 * P == Q
             # 3d
             Q = Polynomial((i, j, k) => 1 // 1)
             P = solve_helmholtz(Q; k=κ)
-            @test PolynomialSolutions.laplacian(P) + κ^2 * P == Q
+            @test ElementaryPDESolutions.laplacian(P) + κ^2 * P == Q
         end
     end
 end
@@ -88,11 +88,11 @@ end
         # 2d
         Q = Polynomial((i, j) => 1 // 1)
         P = solve_laplace(Q)
-        @test PolynomialSolutions.laplacian(P) == Q
+        @test ElementaryPDESolutions.laplacian(P) == Q
         # 3d
         Q = Polynomial((i, j, k) => 1 // 1)
         P = solve_laplace(Q)
-        @test PolynomialSolutions.laplacian(P) == Q
+        @test ElementaryPDESolutions.laplacian(P) == Q
     end
     # test that you cannot pass an inhomogenous polynomials
     Q = Polynomial([(0, 0) => 1, (1, 0) => 2, (0, 1) => 3])
@@ -102,13 +102,13 @@ end
 @testset "Anisotropic Laplace" begin
     A = SMatrix{2,2,Float64}(2, 1, 1, 3)
     Q = Polynomial([(1, 3) => 1.0, (2, 2) => 1.0])
-    rAQ = PolynomialSolutions.multiply_by_anisotropic_r(A, Q, 2)
-    @test iszero(PolynomialSolutions.drop_zeros!(rAQ -
+    rAQ = ElementaryPDESolutions.multiply_by_anisotropic_r(A, Q, 2)
+    @test iszero(ElementaryPDESolutions.drop_zeros!(rAQ -
                                                  Polynomial([(3, 3) => 0.2, (4, 2) => 0.6,
                                                              (1, 5) => 0.4]), 10^(-15)))
-    @test PolynomialSolutions.anisotropic_laplacian(A, Q) ==
+    @test ElementaryPDESolutions.anisotropic_laplacian(A, Q) ==
           Polynomial([(2, 0) => 6.0, (1, 1) => 26.0, (0, 2) => 10.0])
-    @test iszero(PolynomialSolutions.drop_zeros!(PolynomialSolutions.anisotropic_laplacian(A,
+    @test iszero(ElementaryPDESolutions.drop_zeros!(ElementaryPDESolutions.anisotropic_laplacian(A,
                                                                                            solve_anisotropic_laplace(A,
                                                                                                                      Q)) -
                                                  Q, 10^(-15)))
@@ -134,21 +134,21 @@ end
     A = SMatrix{N,N,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, 3 // 1)
     g = Polynomial([(1, 3) => 2 // 1])
     v = solve_anisotropic_laplace(A, g)
-    @test PolynomialSolutions.anisotropic_laplacian(A, v) == g
+    @test ElementaryPDESolutions.anisotropic_laplacian(A, v) == g
 
     N = 3
     A = SMatrix{N,N,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, 1 // 1, 3 // 1, 1 // 1, 1 // 1,
                                      1 // 1, 3 // 1)
     g = Polynomial([(1, 3, 2) => 2 // 1])
     v = solve_anisotropic_laplace(A, g)
-    @test PolynomialSolutions.anisotropic_laplacian(A, v) == g
+    @test ElementaryPDESolutions.anisotropic_laplacian(A, v) == g
 
     # Test non-positive anisotropic tensor
     N = 2
     A = SMatrix{N,N,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, -3 // 1)
     g = Polynomial([(1, 3) => 2 // 1])
     v = solve_anisotropic_laplace(A, g)
-    @test PolynomialSolutions.anisotropic_laplacian(A, v) == g
+    @test ElementaryPDESolutions.anisotropic_laplacian(A, v) == g
 end
 
 @testset "Anisotropic Advection/Diffusion" begin
@@ -157,18 +157,18 @@ end
     β = SVector{N,Float64}(2, 1)
     g = Polynomial([(1, 3) => 1.0])
     v = solve_anisotropic_advect(β, g)
-    @test iszero(PolynomialSolutions.drop_zeros!(g -
+    @test iszero(ElementaryPDESolutions.drop_zeros!(g -
                                                  sum(β[i] *
-                                                     PolynomialSolutions.gradient(v)[i]
+                                                     ElementaryPDESolutions.gradient(v)[i]
                                                      for i in 1:N), 10^(-15)))
 
     N = 3
     β = SVector{N,Float64}(2.0, 1.0, 5.0)
     g = Polynomial([(1, 2, 5) => 2.0])
     v = solve_anisotropic_advect(β, g)
-    @test iszero(PolynomialSolutions.drop_zeros!(g -
+    @test iszero(ElementaryPDESolutions.drop_zeros!(g -
                                                  sum(β[i] *
-                                                     PolynomialSolutions.gradient(v)[i]
+                                                     ElementaryPDESolutions.gradient(v)[i]
                                                      for i in 1:N), 10^(-14)))
 
     # Advection + Diffusion
@@ -177,12 +177,12 @@ end
     β = SVector{N,Float64}(2, 1)
     f = Polynomial([(1, 3) => 1.0])
     v = solve_anisotropic_advect_diffuse(A, β, f)
-    @test iszero(PolynomialSolutions.drop_zeros!(f -
-                                                 PolynomialSolutions.anisotropic_laplacian(A,
+    @test iszero(ElementaryPDESolutions.drop_zeros!(f -
+                                                 ElementaryPDESolutions.anisotropic_laplacian(A,
                                                                                            v)
                                                  -
                                                  sum(β[i] *
-                                                     PolynomialSolutions.gradient(v)[i]
+                                                     ElementaryPDESolutions.gradient(v)[i]
                                                      for i in 1:N), 10^(-14)))
 
     N = 3
@@ -190,12 +190,12 @@ end
     β = SVector{N,Float64}(2, 3, 1)
     f = Polynomial([(1, 3, 1) => 1.0, (2, 2, 1) => 2.0])
     v = solve_anisotropic_advect_diffuse(A, β, f)
-    @test iszero(PolynomialSolutions.drop_zeros!(f -
-                                                 PolynomialSolutions.anisotropic_laplacian(A,
+    @test iszero(ElementaryPDESolutions.drop_zeros!(f -
+                                                 ElementaryPDESolutions.anisotropic_laplacian(A,
                                                                                            v)
                                                  -
                                                  sum(β[i] *
-                                                     PolynomialSolutions.gradient(v)[i]
+                                                     ElementaryPDESolutions.gradient(v)[i]
                                                      for i in 1:N), 10^(-13)))
 
     # Rationals
@@ -204,15 +204,15 @@ end
     β = SVector{2,Rational{Int64}}(2 // 1, 1 // 1)
     g = Polynomial([(1, 1) => 2 // 1])
     v = solve_anisotropic_advect_diffuse(A, β, g)
-    @test PolynomialSolutions.anisotropic_laplacian(A, v) + sum(β[i] *
-                                                                PolynomialSolutions.gradient(v)[i] for i in 1:N) ==
+    @test ElementaryPDESolutions.anisotropic_laplacian(A, v) + sum(β[i] *
+                                                                ElementaryPDESolutions.gradient(v)[i] for i in 1:N) ==
           g
 
     # Test non-positive anisotropic tensor
     A = SMatrix{N,N,Rational{Int64}}(2 // 1, 1 // 1, 1 // 1, -3 // 1)
     v = solve_anisotropic_advect_diffuse(A, β, g)
-    @test PolynomialSolutions.anisotropic_laplacian(A, v) + sum(β[i] *
-                                                                PolynomialSolutions.gradient(v)[i] for i in 1:N) ==
+    @test ElementaryPDESolutions.anisotropic_laplacian(A, v) + sum(β[i] *
+                                                                ElementaryPDESolutions.gradient(v)[i] for i in 1:N) ==
           g
 end
 

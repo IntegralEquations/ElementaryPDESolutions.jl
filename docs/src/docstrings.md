@@ -1,5 +1,5 @@
 # Docstrings
 
 ```@autodocs
-Modules = [PolynomialSolutions]
+Modules = [ElementaryPDESolutions]
 ```

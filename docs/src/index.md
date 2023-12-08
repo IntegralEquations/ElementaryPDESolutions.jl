@@ -1,8 +1,8 @@
 ```@meta
-CurrentModule = PolynomialSolutions
+CurrentModule = ElementaryPDESolutions
 ```
 
-# PolynomialSolutions
+# ElementaryPDESolutions
 
 *Compute polynomial solutions to certain PDEs given a polynomial source term.*
 
@@ -21,7 +21,7 @@ $\mathcal{L}$ is a certain (linear) constant coefficient differential operator.
 A typical use case consists of creating a polynomial `Q`
 
 ```@repl simple-usecase
-using PolynomialSolutions;
+using ElementaryPDESolutions;
 Q = Polynomial([(1,2)=>2, (3,0)=>-1])
 ```
 
@@ -59,7 +59,7 @@ types (e.g. the type of `k` in [`solve_helmholtz`](@ref)). In the presence of
 floating point errors, this means that the computed coefficients may be inexact:
 
 ```@repl coefficients
-using PolynomialSolutions;
+using ElementaryPDESolutions;
 Q = Polynomial((2,2)=>1)
 P = solve_helmholtz(Q;k=3)
 ```

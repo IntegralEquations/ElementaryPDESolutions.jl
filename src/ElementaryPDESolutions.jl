@@ -1,4 +1,4 @@
-module PolynomialSolutions
+module ElementaryPDESolutions
 using LinearAlgebra
 
 """
