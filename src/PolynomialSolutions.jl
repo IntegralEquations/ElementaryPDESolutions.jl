@@ -720,10 +720,11 @@ Compute a polynomial vector potential `P` satisfying the auxiliary vector PDE.
 for the Brinkman (linearized Navier-Stokes) system.
 """
 function brinkman_component_solver(Q::Polynomial{N,T}, α) where {N,T}
-    n = degree(Q) # TODO This can probably reduced due to difference in operator degree
+    n = degree(Q)
+    J = cld(n - 2, 4) # q = 2, r = 6 in paper, so J = ceiling((n-2)/(6-2))
     uᵢ = -1 / α^4 * solve_laplace(deepcopy(Q))
     P = Polynomial{N,T}() + uᵢ
-    for i in (n - 1):-1:0
+    for i in (J - 1):-1:0
         uᵢ = -1 / α^4 * solve_laplace(-laplacian(laplacian(laplacian(uᵢ))))
         P = P + uᵢ
     end
