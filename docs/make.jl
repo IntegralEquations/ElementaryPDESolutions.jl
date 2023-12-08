@@ -8,16 +8,16 @@ DocMeta.setdocmeta!(ElementaryPDESolutions, :DocTestSetup,
 makedocs(;
          modules=[ElementaryPDESolutions],
          authors="Thomas G. Anderson, Luiz M. Faria",
-         repo="https://github.com/WaveProp/ElementaryPDESolutions.jl/blob/{commit}{path}#{line}",
+         repo="https://github.com/IntegralEquations/ElementaryPDESolutions.jl/blob/{commit}{path}#{line}",
          sitename="ElementaryPDESolutions.jl",
          format=Documenter.HTML(;
                                 prettyurls=get(ENV, "CI", "false") == "true",
-                                canonical="https://WaveProp.github.io/ElementaryPDESolutions.jl",
+                                canonical="https://IntegralEquations.github.io/ElementaryPDESolutions.jl",
                                 edit_link="main",
                                 assets=String[]),
          pages=["Home" => "index.md",
                 "Docstrings" => "docstrings.md"])
 
 deploydocs(;
-           repo="github.com/WaveProp/ElementaryPDESolutions.jl",
+           repo="github.com/IntegralEquations/ElementaryPDESolutions.jl",
            devbranch="main")
