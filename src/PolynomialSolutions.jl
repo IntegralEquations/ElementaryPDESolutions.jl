@@ -583,11 +583,11 @@ function solve_anisotropic_advect_diffuse(A::AbstractMatrix{T}, β::AbstractVect
     @assert length(β) == N "β must be dimensionally consistent with Q"
 
     n = degree(Q)
-    uₙ = solve_anisotropic_advect(β, deepcopy(Q))
-    P = Polynomial{N,T}() + uₙ
+    uᵢ = solve_anisotropic_advect(β, deepcopy(Q))
+    P = Polynomial{N,T}() + uᵢ
     for i in (n - 1):-1:0
-        uₙ = solve_anisotropic_advect(β, -anisotropic_laplacian(A, uₙ))
-        P = P + uₙ
+        uᵢ = solve_anisotropic_advect(β, -anisotropic_laplacian(A, uᵢ))
+        P = P + uᵢ
     end
     return P
 end
@@ -721,11 +721,11 @@ for the Brinkman (linearized Navier-Stokes) system.
 """
 function brinkman_component_solver(Q::Polynomial{N,T}, α) where {N,T}
     n = degree(Q) # TODO This can probably reduced due to difference in operator degree
-    uₙ = -1 / α^4 * solve_laplace(deepcopy(Q))
-    P = Polynomial{N,T}() + uₙ
+    uᵢ = -1 / α^4 * solve_laplace(deepcopy(Q))
+    P = Polynomial{N,T}() + uᵢ
     for i in (n - 1):-1:0
-        uₙ = -1 / α^4 * solve_laplace(-laplacian(laplacian(laplacian(uₙ))))
-        P = P + uₙ
+        uᵢ = -1 / α^4 * solve_laplace(-laplacian(laplacian(laplacian(uᵢ))))
+        P = P + uᵢ
     end
     return P
 end
