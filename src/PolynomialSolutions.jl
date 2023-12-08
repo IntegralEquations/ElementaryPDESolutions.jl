@@ -837,7 +837,6 @@ export
        solve_bilaplace,
        solve_stokes,
        solve_brinkman,
-       brinkman_component_solver,
        solve_elastostatic,
        solve_elastodynamics,
        solve_maxwell
