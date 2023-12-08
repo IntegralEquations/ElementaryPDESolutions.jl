@@ -287,7 +287,6 @@ function anisotropic_laplacian(A::AbstractMatrix, p::Polynomial{N}) where {N}
     return Δp
 end
 
-
 function divergence(P::NTuple{N,Polynomial{N,T}}) where {N,T}
     return sum(derivative(P[i], i) for i in 1:N)
 end
@@ -721,10 +720,10 @@ for the Brinkman (linearized Navier-Stokes) system.
 """
 function brinkman_component_solver(Q::Polynomial{N,T}, α) where {N,T}
     n = degree(Q)
-    m = cld(n+1, 4) - 1 # q = 2, r = 6 in paper
+    m = cld(n + 1, 4) - 1 # q = 2, r = 6 in paper
     uᵢ = -1 / α^4 * solve_laplace(deepcopy(Q))
     P = Polynomial{N,T}() + uᵢ
-    for _ in 0:(m-1)
+    for _ in 0:(m - 1)
         uᵢ = -1 / α^4 * solve_laplace(-laplacian(laplacian(laplacian(uᵢ))))
         P = P + uᵢ
     end
