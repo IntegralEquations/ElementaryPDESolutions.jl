@@ -252,6 +252,21 @@ end
     end
 end
 
+@testset "Brinkman" begin
+    Re = 314 // 1
+    α = 159 // 1
+    Q = (Polynomial([(2, 6) => 5 // 1]), Polynomial([(3, 5) => 8 // 1]))
+    U, P = solve_brinkman(Q; Re=Re, α=α)
+    @test laplacian.(U) .- α^2 .* U .- Re .* gradient(P) == Q
+    @test iszero(divergence(U))
+
+    Q = (Polynomial([(2, 1, 3) => 3 // 1]), Polynomial([(3, 1, 2) => 7 // 1]),
+         Polynomial([(2, 3, 1) => 3 // 1]))
+    U, P = solve_brinkman(Q; Re=Re, α=α)
+    @test laplacian.(U) .- α^2 .* U .- Re .* gradient(P) == Q
+    @test iszero(divergence(U))
+end
+
 @testset "Elastostatics" begin
     μ = 1 // 2
     ν = 3 // 8
