@@ -1,4 +1,4 @@
-module PolynomialSolutions
+module ElementaryPDESolutions
 using LinearAlgebra
 
 """
@@ -144,7 +144,7 @@ end
 Multiply a polynomial `p` by the polynomial (β ⋅ 𝐫)ᵏ, 𝐫 = (x_1, x_2, ..., x_n),
 and `k` is a non-negative integer.
 """
-function multiply_by_anisotropic_β_r(β::AbstractVector{T}, p::Polynomial{N,T},
+function multiply_by_anisotropic_β_r(β::AbstractVector, p::Polynomial{N,T},
                                      k::Int) where {N,T}
     @assert length(β) == N
     @assert k ≥ 0
@@ -276,11 +276,11 @@ function laplacian(p::Polynomial{N,T}) where {N,T}
 end
 
 """
-    anisotropic_laplacian(A::AbstractMatrix{T}, P::Polynomial)
+    anisotropic_laplacian(A::AbstractMatrix, P::Polynomial)
 
 Evaluate the anisotropic Laplacian `∇ ⋅ (A ∇P)`.
 """
-function anisotropic_laplacian(A::AbstractMatrix{T}, p::Polynomial{N,T}) where {N,T}
+function anisotropic_laplacian(A::AbstractMatrix, p::Polynomial{N}) where {N}
     @assert LinearAlgebra.checksquare(A) == N
     ∇p = gradient(p)
     Δp = sum(derivative(sum(A[i, j] * ∇p[j] for j in 1:N), i) for i in 1:N)
@@ -503,8 +503,8 @@ julia> P = solve_laplace(Q)
 function solve_laplace(Q::Polynomial{N,T}) where {N,T}
     @assert is_homogeneous(Q) "source term `Q` must be a homogeneous polynomial"
     n = degree(Q)
-    γ = (k, p) -> big(2 * (k + 1) * (2k + 2p + N)) # γₖᵖ
-    cₖ = 1 // γ(0, n) # c₀
+    γ = (k, p) -> 2 * (k + 1) * (2k + 2p + N) # γₖᵖ
+    cₖ = big(1) // γ(0, n) # c₀
     P = cₖ * multiply_by_r(deepcopy(Q), 2)
     ΔᵏQ = deepcopy(Q)
     m = floor(Int, n / 2)
@@ -542,8 +542,8 @@ function solve_anisotropic_laplace(A::AbstractMatrix{T}, Q::Polynomial{N,T}) whe
     @assert is_homogeneous(Q) "source term `Q` must be a homogeneous polynomial"
 
     n = degree(Q)
-    γ = (k, p) -> big(2 * (k + 1) * (2k + 2p + N)) # γₖᵖ
-    cₖ = 1 // γ(0, n) # c₀
+    γ = (k, p) -> 2 * (k + 1) * (2k + 2p + N) # γₖᵖ
+    cₖ = big(1) // γ(0, n) # c₀
     P = cₖ * multiply_by_anisotropic_r(A, deepcopy(Q), 2)
     ΔᵏQ = deepcopy(Q)
     m = floor(Int, n / 2)
@@ -553,13 +553,11 @@ function solve_anisotropic_laplace(A::AbstractMatrix{T}, Q::Polynomial{N,T}) whe
         ΔP = cₖ * (multiply_by_anisotropic_r(A, ΔᵏQ, 2k + 2))
         P = P + ΔP
     end
-    #return P
-    return convert_coefs(P, T)
-    #return convert_coefs(P, Float64)
+    return P
 end
 
 """
-    solve_anisotropic_advect_diffuse(A::SMatrix{N, N, T}, β::AbstractVector{T}, Q::Polynomial)
+    solve_anisotropic_advect_diffuse(A::SMatrix{N, N}, β::AbstractVector{T}, Q::Polynomial)
 
 Return a polynomial `P` satisfying the anisotropic advection-diffusion equation
 `∇ ⋅ (A ∇P) + β⋅∇P = Q`, `A` a symmetric positive definite matrix.
@@ -578,22 +576,22 @@ P = solve_anisotropic_advect_diffuse(A, β, Q)
 -14//25y - 28//25x + 16//25xy + 9//25y² - 4//25x²
 ```
 """
-function solve_anisotropic_advect_diffuse(A::AbstractMatrix{T}, β::AbstractVector{T},
+function solve_anisotropic_advect_diffuse(A::AbstractMatrix, β::AbstractVector,
                                           Q::Polynomial{N,T}) where {N,T}
     @assert length(β) == N "β must be dimensionally consistent with Q"
 
     n = degree(Q)
-    u_ₙ = solve_anisotropic_advect(β, deepcopy(Q))
-    P = Polynomial{N,T}() + u_ₙ
+    uᵢ = solve_anisotropic_advect(β, deepcopy(Q))
+    P = Polynomial{N,T}() + uᵢ
     for i in (n - 1):-1:0
-        u_ₙ = solve_anisotropic_advect(β, -anisotropic_laplacian(A, u_ₙ))
-        P = P + u_ₙ
+        uᵢ = solve_anisotropic_advect(β, -anisotropic_laplacian(A, uᵢ))
+        P = P + uᵢ
     end
     return P
 end
 
 """
-    solve_anisotropic_advect(β::AbstractVector{T}, Q::Polynomial)
+    solve_anisotropic_advect(β::AbstractVector, Q::Polynomial)
 
 Return a polynomial `P` satisfying the anisotropic advection equation `β⋅∇P = Q`.
 
@@ -608,21 +606,22 @@ P = solve_anisotropic_advect(β, Q)
 # output
 
 2//5y + 4//5x
-````
+```
 """
-function solve_anisotropic_advect(β::AbstractVector{T}, Q::Polynomial{N,T}) where {N,T}
+function solve_anisotropic_advect(β::AbstractVector, Q::Polynomial{N,T}) where {N,T}
     @assert length(β) == N "β must be dimensionally consistent with Q"
 
     n = degree(Q)
     betagradellq = deepcopy(Q)
-    cₗ = 1 # c₀
+    cₗ = big(1) # c₀
     P = cₗ * multiply_by_anisotropic_β_r(β, Q, 1)
+    β2 = sum(β[i]^2 for i in 1:N)
     for l in 1:n
-        cₗ = -cₗ / ((l + 1) * sum(β[i]^2 for i in 1:N))
+        cₗ = -cₗ / ((l + 1) * β2)
         betagradellq = sum(β[i] * gradient(betagradellq)[i] for i in 1:N)
         P = P + cₗ * multiply_by_anisotropic_β_r(β, betagradellq, l + 1)
     end
-    return (1 / sum(β[i]^2 for i in 1:N)) * P
+    return (1 / β2) * P
 end
 
 """
@@ -669,6 +668,66 @@ function solve_stokes(Q::NTuple{N,Polynomial{N,T}}; μ=1 // 1) where {N,T}
     u = laplacian.(g) .+ gradient(h)
     p = μ * laplacian(h)
     return u, p
+end
+
+"""
+    solve_brinkman(Q::NTuple{N,Polynomial{N,T}};Re=1,α=1)
+
+Compute a vector of polynomials `U` and a polynomial `P` satisfying the
+linearized unsteady Navier-Stokes equations, sometimes referred to as the Brinkman equations
+or the modified Stokes equations, `(Δ - α²)U - Re ∇P = Q` with `∇⋅U = 0`. Each component of the
+polynomial `Q` is required to be individually homogeneous.
+
+The solutions are given by the expressions
+
+    u = (Δ + α²)(Δ - ∇∇⋅)g,
+
+    p = -1/Re (Δ² - α⁴)∇⋅g,
+
+where the vector potential g satisfies
+
+    (Δ³ - α⁴Δ)g = Q.
+
+# Examples
+
+```jldoctest
+julia> Q = (Polynomial([(2, 1) => 2 // 1]), Polynomial([(0, 2) => 4 // 1]))
+(2//1x²y, 4//1y²)
+
+julia> U, P = solve_brinkman(Q; Re=Rational(1), α=Rational(1))
+((0//1y + xy + 5//24y³ - 5//8x²y, 0//1 + 4//1x + 1//2x² - 1//2y² + 5//8xy² + 11//24x³), -7//6y³ - 1//2x²y - 11//24x³y - 5//24xy³)
+```
+"""
+function solve_brinkman(Q::NTuple{N,Polynomial{N,T}}; Re=1 // 1, α=1 // 1) where {N,T}
+    g = brinkman_component_solver.(Q, α)
+    divg = divergence(g)
+    v = laplacian.(g) .- gradient(divg)
+
+    U = laplacian.(v) .+ α^2 .* v
+    P = -1 / Re * (laplacian(laplacian(divg)) - α^4 * divg)
+
+    return U, P
+end
+
+"""
+    brinkman_component_solver(Q::Polynomial{N,T}, α) where {N,T}
+
+Compute a polynomial vector potential `P` satisfying the auxiliary vector PDE.
+
+    (Δ³ - α⁴Δ)P = Q
+
+for the Brinkman (linearized Navier-Stokes) system.
+"""
+function brinkman_component_solver(Q::Polynomial{N,T}, α) where {N,T}
+    n = degree(Q)
+    m = cld(n + 1, 4) - 1 # q = 2, r = 6 in paper
+    uᵢ = -1 / α^4 * solve_laplace(deepcopy(Q))
+    P = Polynomial{N,T}() + uᵢ
+    for _ in 0:(m - 1)
+        uᵢ = -1 / α^4 * solve_laplace(-laplacian(laplacian(laplacian(uᵢ))))
+        P = P + uᵢ
+    end
+    return P
 end
 
 """
@@ -777,6 +836,7 @@ export
        solve_anisotropic_advect_diffuse,
        solve_bilaplace,
        solve_stokes,
+       solve_brinkman,
        solve_elastostatic,
        solve_elastodynamics,
        solve_maxwell

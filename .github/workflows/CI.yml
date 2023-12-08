@@ -55,6 +55,6 @@ jobs:
       - run: |
           julia --project=docs -e '
             using Documenter: DocMeta, doctest
-            using PolynomialSolutions
-            DocMeta.setdocmeta!(PolynomialSolutions, :DocTestSetup, :(using PolynomialSolutions); recursive=true)
-            doctest(PolynomialSolutions)'
+            using ElementaryPDESolutions
+            DocMeta.setdocmeta!(ElementaryPDESolutions, :DocTestSetup, :(using ElementaryPDESolutions); recursive=true)
+            doctest(ElementaryPDESolutions)'
