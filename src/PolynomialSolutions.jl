@@ -721,7 +721,7 @@ for the Brinkman (linearized Navier-Stokes) system.
 """
 function brinkman_component_solver(Q::Polynomial{N,T}, α) where {N,T}
     n = degree(Q)
-    J = cld(n, 4) # q = 2, r = 6 in paper, so need J > ceiling(n/(6-2)) - 1
+    J = cld(n+1, 4) - 1 # q = 2, r = 6 in paper
     uᵢ = -1 / α^4 * solve_laplace(deepcopy(Q))
     P = Polynomial{N,T}() + uᵢ
     for i in (J - 1):-1:0
