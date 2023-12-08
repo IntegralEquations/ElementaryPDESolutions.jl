@@ -47,6 +47,7 @@ further details):
 - [`solve_helmholtz`](@ref)
 - [`solve_bilaplace`](@ref)
 - [`solve_stokes`](@ref)
+- [`solve_brinkman`](@ref)
 - [`solve_elastostatic`](@ref)
 - [`solve_elastodynamics`](@ref)
 - [`solve_maxwell`](@ref)
