@@ -13,9 +13,8 @@ Type the following inside a Julia REPL:
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/IntegralEquations/ElementaryPDESolutions.jl")
+Pkg.add("ElementaryPDESolutions")
 ```
-
 
 ## Usage
 
