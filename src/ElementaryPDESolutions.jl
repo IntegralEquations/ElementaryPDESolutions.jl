@@ -52,13 +52,11 @@ Polynomial(v::Vector{Pair{NTuple{N,Int},T}}) where {N,T} = Polynomial{N,T}(Dict(
 Polynomial(p::Pair{NTuple{N,Int},T}) where {N,T} = Polynomial{N,T}(Dict(p))
 
 # functor interface
-function (p::Polynomial{N})(x::Tuple) where {N}
-    @assert length(x) == N "Expected a tuple of length $N, got $(length(x))"
-    @assert all(t -> t isa Number, x) "Expected a tuple of numbers, got $(typeof(x))"
+function (p::Polynomial{N})(x) where {N}
+    @assert length(x) == N "Expected input of length $N, got $(length(x))"
     return sum(c * prod(x .^ θ) for (θ, c) in p.order2coeff)
 end
-(p::Polynomial{1})(x::Number) = p(Tuple(x))
-(p::Polynomial)(x...) = p(x)
+(p::Polynomial)(x...) = p(x) # so that e.g. p(x,y) works
 
 """
     is_homogeneous(p::Polynomial)

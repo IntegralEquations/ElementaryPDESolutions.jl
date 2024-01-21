@@ -25,6 +25,9 @@ Aqua.test_all(ElementaryPDESolutions; unbound_args=false)
     @test @inferred q((0.1, 2)) == 0.1 - 0.1^2 * 2
     @test typeof(p) == Polynomial{2,Int64}
     @test typeof(q) == Polynomial{2,Float64}
+    # test various forms of calling p
+    x,y = 1.2, -0.4
+    @test p(x,y) == p((x,y)) == p([x,y]) == p(SVector(x,y))
 
     @test ElementaryPDESolutions.degree(p1) == 0
     @test ElementaryPDESolutions.degree(Polynomial((2, 0) => 1)) == 2
