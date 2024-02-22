@@ -36,6 +36,15 @@ Aqua.test_all(ElementaryPDESolutions; unbound_args=false)
     @test 2 * p1 == Polynomial((0, 0) => 2)
     @test (1 + 0.2 * im) * p1 == Polynomial((0, 0) => 1 + 0.2 * im)
 
+    # test evaluation of zero polynomial
+    for N in 1:3
+        x = @SVector rand(N)
+        for T in (Float64,ComplexF64, SVector{N,Float64}, SVector{N,ComplexF64})
+            p = Polynomial{N,T}()
+            @test p(x) == zero(T)
+        end
+    end
+
     @test ElementaryPDESolutions.derivative(Polynomial((0, 0) => 1), 1) ==
           Polynomial((0, 0) => 0)
     @test ElementaryPDESolutions.derivative(Polynomial((1, 0) => 1), 1) ==
