@@ -52,9 +52,9 @@ Polynomial(v::Vector{Pair{NTuple{N,Int},T}}) where {N,T} = Polynomial{N,T}(Dict(
 Polynomial(p::Pair{NTuple{N,Int},T}) where {N,T} = Polynomial{N,T}(Dict(p))
 
 # functor interface
-function (p::Polynomial{N})(x) where {N}
+function (p::Polynomial{N,T})(x) where {N,T}
     @assert length(x) == N "Expected input of length $N, got $(length(x))"
-    return sum(c * prod(x .^ θ) for (θ, c) in p.order2coeff)
+    return sum(c * prod(x .^ θ) for (θ, c) in p.order2coeff; init=zero(T))
 end
 (p::Polynomial)(x...) = p(x) # so that e.g. p(x,y) works
 
