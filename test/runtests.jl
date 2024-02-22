@@ -39,7 +39,7 @@ Aqua.test_all(ElementaryPDESolutions; unbound_args=false)
     # test evaluation of zero polynomial
     for N in 1:3
         x = @SVector rand(N)
-        for T in (Float64,ComplexF64, SVector{N,Float64}, SVector{N,ComplexF64})
+        for T in (Float64, ComplexF64, SVector{N,Float64}, SVector{N,ComplexF64})
             p = Polynomial{N,T}()
             @test p(x) == zero(T)
         end
