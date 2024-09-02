@@ -1,7 +1,8 @@
+using FixedPolynomials
 using ElementaryPDESolutions
 using StaticArrays
 using Test
-using ElementaryPDESolutions: laplacian, divergence, gradient, curl, convert_coefs
+using ElementaryPDESolutions: laplacian, divergence, gradient, curl, convert_coefs, Polynomial
 using Aqua
 
 # run aqua tests. We disable `unbound_args`` because otherwise signatures like
@@ -355,4 +356,100 @@ end
         poly4 = μ * divergence(H)
         @test iszero(poly4)
     end
+end
+
+@testset "Fast Evaluation" begin
+    N = 3
+    npts = 10
+    x = Vector{Vector{Float64}}(undef, npts)
+    for i in 1:npts
+        x[i] = rand(N)
+    end
+
+    p = [
+        ElementaryPDESolutions.Polynomial((3, 1, 4) => 1),
+         ElementaryPDESolutions.Polynomial((1, 2, 3) => 1),
+         ElementaryPDESolutions.Polynomial((1, 3, 1) => 1),
+         ElementaryPDESolutions.Polynomial((1, 3, 2) => 1)
+         ]
+    npoly_p = length(p)
+    P = Vector{ElementaryPDESolutions.Polynomial{N, Float64}}(undef, npoly_p)
+    for i in 1:npoly_p
+        Pi = ElementaryPDESolutions.solve_laplace(p[i])
+        P[i] = ElementaryPDESolutions.convert_coefs(Pi, Float64)
+    end
+    PFE = ElementaryPDESolutions.assemble_fastevaluator(P)
+
+    vals = Matrix{Float64}(undef, npoly_p, npts)
+    vals2 = Matrix{Float64}(undef, npoly_p, npts)
+    grad = Array{Float64}(undef, npoly_p, N, npts)
+    ElementaryPDESolutions.fast_evaluate_with_jacobian!(vals, grad, x, PFE)
+    ElementaryPDESolutions.fast_evaluate!(vals2, x, PFE)
+    @test 1 == 1
+end
+
+@testset "Vector PDE Fast Evaluation" begin
+    N = 3
+    npts = 10
+    x = Vector{Vector{Float64}}(undef, npts)
+    for i in 1:npts
+        x[i] = rand(N)
+    end
+
+    # Stokes vector of (U,p) Polynomial s1olution Tuples
+    q = [
+        (ElementaryPDESolutions.Polynomial((1,2,1) => 1.0),
+         ElementaryPDESolutions.Polynomial((2,1,1) => 2.0),
+         ElementaryPDESolutions.Polynomial((1,2,2) => 3.0)),
+
+        (ElementaryPDESolutions.Polynomial((2,1,4) => 8.0),
+         ElementaryPDESolutions.Polynomial((1,3,3) => 5.0),
+         ElementaryPDESolutions.Polynomial((1,5,1) => 2.0)),
+
+        (ElementaryPDESolutions.Polynomial((4,3,2) => 1.0),
+         ElementaryPDESolutions.Polynomial((0,0,9) => 5.0),
+         ElementaryPDESolutions.Polynomial((3,3,3) => 4.0)),
+    ]
+    npoly_q = length(q)
+    
+    # We compute polynomial solutions of vector PDE problems by flattening and
+    # packing into one honkin' vector; unpack responsibly.
+    UP_tuplevector = Vector{
+        Tuple{
+            # velocity U
+              Tuple{ElementaryPDESolutions.Polynomial{N, Float64},
+                    ElementaryPDESolutions.Polynomial{N, Float64},
+                    ElementaryPDESolutions.Polynomial{N, Float64}},
+
+            # pressure P
+              ElementaryPDESolutions.Polynomial{N, Float64}
+        }
+    }(undef, npoly_q)
+    for i in 1:npoly_q
+        UP = ElementaryPDESolutions.solve_stokes(q[i])
+        UP_tuplevector[i] = (
+            (
+                ElementaryPDESolutions.convert_coefs(UP[1][1], Float64),
+                ElementaryPDESolutions.convert_coefs(UP[1][2], Float64),
+                ElementaryPDESolutions.convert_coefs(UP[1][3], Float64)
+            ),
+                ElementaryPDESolutions.convert_coefs(UP[2], Float64),
+        )
+    end
+
+    UP_flatvector = Vector{ElementaryPDESolutions.Polynomial{N, Float64}}(undef, npoly_q*4)
+    for i in 1:npoly_q
+        UP_flatvector[4*(i-1) + 1] = UP_tuplevector[i][1][1]
+        UP_flatvector[4*(i-1) + 2] = UP_tuplevector[i][1][2]
+        UP_flatvector[4*(i-1) + 3] = UP_tuplevector[i][1][3]
+        UP_flatvector[4*(i-1) + 4] = UP_tuplevector[i][2]
+    end
+    PFE = ElementaryPDESolutions.assemble_fastevaluator(UP_flatvector)
+
+    vals = Matrix{Float64}(undef, npoly_q*4, npts)
+    vals2 = Matrix{Float64}(undef, npoly_q*4, npts)
+    grad = Array{Float64}(undef, npoly_q*4, N, npts)
+    ElementaryPDESolutions.fast_evaluate_with_jacobian!(vals, grad, x, PFE)
+    ElementaryPDESolutions.fast_evaluate!(vals2, x, PFE)
+    @test 1 == 1
 end

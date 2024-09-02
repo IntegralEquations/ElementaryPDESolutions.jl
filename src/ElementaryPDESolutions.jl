@@ -824,6 +824,18 @@ function solve_maxwell(J::NTuple{3,Polynomial{3,T}}; ϵ=1, μ=1, ω=1) where {T}
     return drop_zeros!.(E), drop_zeros!.(H)
 end
 
+function assemble_fastevaluator(args...; kwargs...)
+    return error("assemble_fastevaluator not found. Did you forget to import FixedPolynomials ?")
+end
+
+function fast_evaluate_with_jacobian!(args...; kwargs...)
+    return error("fast_evaluate_with_jacobian! not found. Did you forget to import FixedPolynomials ?")
+end
+
+function fast_evaluate!(args...; kwargs...)
+    return error("fast_evaluate! not found. Did you forget to import FixedPolynomials ?")
+end
+
 export
        Polynomial,
        convert_coefs,
