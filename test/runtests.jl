@@ -358,7 +358,26 @@ end
     end
 end
 
-@testset "Fast Evaluation" begin
+@testset "Fast Evaluation of Scalar Polynomials" begin
+    N = 3
+    npts = 10
+    x = Vector{Vector{Float64}}(undef, npts)
+    for i in 1:npts
+        x[i] = rand(3)
+    end
+    
+    P = ElementaryPDESolutions.Polynomial((3, 1, 4) => 1)
+    SPFE = ElementaryPDESolutions.assemble_fastevaluator(P, Float64)
+    
+    vals  = Vector{Float64}(undef, npts)
+    vals2 = Vector{Float64}(undef, npts)
+    grad  = Matrix{Float64}(undef, N, npts)
+    ElementaryPDESolutions.fast_evaluate!(vals, x, SPFE)
+    ElementaryPDESolutions.fast_evaluate_with_gradient!(vals2, grad, x, SPFE)
+    @test 1 == 1
+end
+
+@testset "Fast Evaluation of Vector Polynomials" begin
     N = 3
     npts = 10
     x = Vector{Vector{Float64}}(undef, npts)
