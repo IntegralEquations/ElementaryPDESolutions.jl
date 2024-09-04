@@ -8,6 +8,7 @@ function __init__()
     @info "Loading ElementaryPDESolutions.jl FixedPolynomials extension"
 end
 
+# point evaluations at points x::AbstractVector{S} of polynomial vectors F::Vector{Polynomial{T}}
 struct PolyFastEvaluator{N,S,T}
     N::Int64
     PolSystem::FixedPolynomials.System{S}
@@ -37,8 +38,9 @@ function ElementaryPDESolutions.fast_evaluate!(vals::Array{S}, x::Vector{Vector{
 end
 
 function ElementaryPDESolutions.assemble_fastevaluator(
-        Pols::Vector{ElementaryPDESolutions.Polynomial{N,T}}
-    ) where {N, T}
+        Pols::Vector{ElementaryPDESolutions.Polynomial{N,T}},
+        ::Type{S}
+    ) where {N, S, T}
 
     if N == 1
         @polyvar x
@@ -50,11 +52,11 @@ function ElementaryPDESolutions.assemble_fastevaluator(
         error("assemble_fastevaluator only implemented for dimensions ≤ 3")
     end
 
-    PolArray = Array{FixedPolynomials.Polynomial{Float64}}(undef, length(Pols))
+    PolArray = Array{FixedPolynomials.Polynomial{T}}(undef, length(Pols))
     for (polind, poly) in enumerate(Pols)
         coeffs = poly.order2coeff
         exp_data = Matrix{Int64}(undef, N, length(coeffs))
-        coeff_data = Vector{Float64}(undef, length(coeffs))
+        coeff_data = Vector{T}(undef, length(coeffs))
         for (i, pol) in enumerate(coeffs)
             exp_data[:, i] = [q for q in pol[1]]
             coeff_data[i] = pol[2]
@@ -68,9 +70,7 @@ function ElementaryPDESolutions.assemble_fastevaluator(
         end
     end
     PolSystem = FixedPolynomials.System(PolArray)
-    pts = Vector{Vector{Float64}}(undef, 1)
-    pts[1] = zeros(N) 
-    cfg = FixedPolynomials.JacobianConfig(PolSystem, pts[1])
+    cfg = FixedPolynomials.JacobianConfig(PolSystem, S)
     return PolyFastEvaluator(N, PolSystem, cfg)
 end
 
