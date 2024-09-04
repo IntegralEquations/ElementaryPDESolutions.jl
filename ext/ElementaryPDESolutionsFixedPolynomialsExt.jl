@@ -27,6 +27,8 @@ VecPolyFastEvaluator(N, PolSystem::FixedPolynomials.System{S}, cfg::FixedPolynom
 
 ScaPolyFastEvaluator(N, Pol, r::FixedPolynomials.GradientDiffResult{T}, cfg::FixedPolynomials.GradientConfig{T}) where {T} = ScaPolyFastEvaluator{N,T}(N, Pol, r, cfg)
 
+Base.length(VPFE::VecPolyFastEvaluator{N,S,T}) where {N,S,T} = length(VPFE.PolSystem)
+
 function ElementaryPDESolutions.fast_evaluate_with_jacobian!(vals::Array{S}, grad::Array{S}, x::Vector{Vector{S}},
                                 VPFE::VecPolyFastEvaluator{N,S,T}) where {N,S,T}
     @assert size(vals) == (length(VPFE.PolSystem), length(x))
