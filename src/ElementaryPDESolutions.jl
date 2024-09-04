@@ -832,6 +832,10 @@ function fast_evaluate_with_jacobian!(args...; kwargs...)
     return error("fast_evaluate_with_jacobian! not found. Did you forget to import FixedPolynomials ?")
 end
 
+function fast_evaluate_with_gradient!(args...; kwargs...)
+    return error("fast_evaluate_with_gradient! not found. Did you forget to import FixedPolynomials ?")
+end
+
 function fast_evaluate!(args...; kwargs...)
     return error("fast_evaluate! not found. Did you forget to import FixedPolynomials ?")
 end
