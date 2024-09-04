@@ -378,7 +378,7 @@ end
         Pi = ElementaryPDESolutions.solve_laplace(p[i])
         P[i] = ElementaryPDESolutions.convert_coefs(Pi, Float64)
     end
-    PFE = ElementaryPDESolutions.assemble_fastevaluator(P)
+    PFE = ElementaryPDESolutions.assemble_fastevaluator(P, Float64)
 
     vals = Matrix{Float64}(undef, npoly_p, npts)
     vals2 = Matrix{Float64}(undef, npoly_p, npts)
@@ -444,11 +444,41 @@ end
         UP_flatvector[4*(i-1) + 3] = UP_tuplevector[i][1][3]
         UP_flatvector[4*(i-1) + 4] = UP_tuplevector[i][2]
     end
-    PFE = ElementaryPDESolutions.assemble_fastevaluator(UP_flatvector)
+    PFE = ElementaryPDESolutions.assemble_fastevaluator(UP_flatvector, Float64)
 
     vals = Matrix{Float64}(undef, npoly_q*4, npts)
     vals2 = Matrix{Float64}(undef, npoly_q*4, npts)
     grad = Array{Float64}(undef, npoly_q*4, N, npts)
+    ElementaryPDESolutions.fast_evaluate_with_jacobian!(vals, grad, x, PFE)
+    ElementaryPDESolutions.fast_evaluate!(vals2, x, PFE)
+    @test 1 == 1
+end
+
+@testset "Rational coeff Fast Evaluation" begin
+    N = 3
+    npts = 10
+    x = Vector{Vector{Rational{BigInt}}}(undef, npts)
+    for i in 1:npts
+        x[i] = [i//(i+1), (i+1)//(i+2), (i+3)//(i+2)]
+    end
+
+    p = [
+        ElementaryPDESolutions.Polynomial((3, 1, 4) => 1//1),
+         ElementaryPDESolutions.Polynomial((1, 2, 3) => 1//1),
+         ElementaryPDESolutions.Polynomial((1, 3, 1) => 1//1),
+         ElementaryPDESolutions.Polynomial((1, 3, 2) => 1//1)
+         ]
+    npoly_p = length(p)
+    P = Vector{ElementaryPDESolutions.Polynomial{N, Rational{BigInt}}}(undef, npoly_p)
+    for i in 1:npoly_p
+        Pi = ElementaryPDESolutions.solve_laplace(p[i])
+        P[i] = Pi
+    end
+    PFE = ElementaryPDESolutions.assemble_fastevaluator(P, Rational{BigInt})
+
+    vals = Matrix{Rational{BigInt}}(undef, npoly_p, npts)
+    vals2 = Matrix{Rational{BigInt}}(undef, npoly_p, npts)
+    grad = Array{Rational{BigInt}}(undef, npoly_p, N, npts)
     ElementaryPDESolutions.fast_evaluate_with_jacobian!(vals, grad, x, PFE)
     ElementaryPDESolutions.fast_evaluate!(vals2, x, PFE)
     @test 1 == 1
