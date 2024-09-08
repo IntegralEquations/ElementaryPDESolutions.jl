@@ -843,6 +843,10 @@ end
 export
        Polynomial,
        convert_coefs,
+       assemble_fastevaluator,
+       fast_evaluate_with_jacobian!,
+       fast_evaluate_with_gradient!,
+       fast_evaluate!,
        solve_helmholtz,
        solve_laplace,
        solve_anisotropic_laplace,

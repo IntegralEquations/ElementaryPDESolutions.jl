@@ -29,41 +29,33 @@ ScaPolyFastEvaluator(N, Pol, r::FixedPolynomials.GradientDiffResult{T}, cfg::Fix
 
 Base.length(VPFE::VecPolyFastEvaluator{N,S,T}) where {N,S,T} = length(VPFE.PolSystem)
 
-function ElementaryPDESolutions.fast_evaluate_with_jacobian!(vals::Array{S}, grad::Array{S}, x::Vector{Vector{S}},
+function ElementaryPDESolutions.fast_evaluate_with_jacobian!(vals::AbstractArray{S}, grad::AbstractArray{S}, x::AbstractVector{S},
                                 VPFE::VecPolyFastEvaluator{N,S,T}) where {N,S,T}
-    @assert size(vals) == (length(VPFE.PolSystem), length(x))
-    @assert size(grad) == (length(VPFE.PolSystem), N, length(x))
-    for i in 1:length(x)
-        FixedPolynomials.evaluate_and_jacobian!(view(vals, :, i), view(grad, :, :, i), VPFE.PolSystem, x[i],
+    @assert length(vals) == length(VPFE.PolSystem)
+    @assert size(grad) == (length(VPFE.PolSystem), N)
+        FixedPolynomials.evaluate_and_jacobian!(vals, grad, VPFE.PolSystem, x,
                                 VPFE.cfg)
-    end
 end
 
-function ElementaryPDESolutions.fast_evaluate_with_gradient!(vals::Array{S}, grad::Array{S}, x::Vector{Vector{S}},
+function ElementaryPDESolutions.fast_evaluate_with_gradient!(vals::Array{S}, grad::AbstractArray{S}, x::AbstractVector{S},
                                 SPFE::ScaPolyFastEvaluator{N,T}) where {N,S,T}
     @assert length(vals) == length(x)
     @assert size(grad) == (N, length(x))
-    for i in 1:length(x)
-        FixedPolynomials.gradient!(SPFE.r, SPFE.Pol, x[i], SPFE.cfg)
-        vals[i] = FixedPolynomials.value(SPFE.r)
-        grad[:, i] = FixedPolynomials.gradient(SPFE.r)
-    end
+    FixedPolynomials.gradient!(SPFE.r, SPFE.Pol, x, SPFE.cfg)
+    vals = FixedPolynomials.value(SPFE.r)
+    grad .= FixedPolynomials.gradient(SPFE.r)
 end
 
-function ElementaryPDESolutions.fast_evaluate!(vals::Array{S}, x::Vector{Vector{S}},
+function ElementaryPDESolutions.fast_evaluate!(vals::AbstractArray{S}, x::AbstractVector{S},
                                 VPFE::VecPolyFastEvaluator{N,S,T}) where {N,S,T}
-    @assert size(vals) == (length(VPFE.PolSystem), length(x))
-    for i in 1:length(x)
-        FixedPolynomials.evaluate!(view(vals, :, i), VPFE.PolSystem, x[i], VPFE.cfg)
-    end
+    @assert length(vals) == length(VPFE.PolSystem)
+    FixedPolynomials.evaluate!(vals, VPFE.PolSystem, x, VPFE.cfg)
 end
 
-function ElementaryPDESolutions.fast_evaluate!(vals::Array{S}, x::Vector{Vector{S}},
+function ElementaryPDESolutions.fast_evaluate!(vals::AbstractArray{S}, x::AbstractVector{S},
                                 SPFE::ScaPolyFastEvaluator{N,T}) where {N,S,T}
     @assert length(vals) == length(x)
-    for i in 1:length(x)
-        vals[i] = FixedPolynomials.evaluate(SPFE.Pol, x[i], SPFE.cfg)
-    end
+    vals = FixedPolynomials.evaluate(SPFE.Pol, x, SPFE.cfg)
 end
 
 
