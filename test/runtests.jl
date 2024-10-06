@@ -1,4 +1,5 @@
 using FixedPolynomials
+using DynamicPolynomials
 using ElementaryPDESolutions
 using StaticArrays
 using Test
@@ -372,8 +373,10 @@ end
     vals  = Vector{Float64}(undef, npts)
     vals2 = Vector{Float64}(undef, npts)
     grad  = Matrix{Float64}(undef, N, npts)
-    ElementaryPDESolutions.fast_evaluate!(vals, x, SPFE)
-    ElementaryPDESolutions.fast_evaluate_with_gradient!(vals2, grad, x, SPFE)
+    for i in 1:npts
+        ElementaryPDESolutions.fast_evaluate!(view(vals, i), x[i], SPFE)
+        ElementaryPDESolutions.fast_evaluate_with_gradient!(view(vals2, i), view(grad, :, i), x[i], SPFE)
+    end
     @test 1 == 1
 end
 
@@ -402,8 +405,10 @@ end
     vals = Matrix{Float64}(undef, npoly_p, npts)
     vals2 = Matrix{Float64}(undef, npoly_p, npts)
     grad = Array{Float64}(undef, npoly_p, N, npts)
-    ElementaryPDESolutions.fast_evaluate_with_jacobian!(vals, grad, x, PFE)
-    ElementaryPDESolutions.fast_evaluate!(vals2, x, PFE)
+    for i in 1:npts
+        ElementaryPDESolutions.fast_evaluate_with_jacobian!(view(vals, :, i), view(grad, :, :, i), x[i], PFE)
+        ElementaryPDESolutions.fast_evaluate!(view(vals2, :, i), x[i], PFE)
+    end
     @test 1 == 1
 end
 
@@ -468,8 +473,10 @@ end
     vals = Matrix{Float64}(undef, npoly_q*4, npts)
     vals2 = Matrix{Float64}(undef, npoly_q*4, npts)
     grad = Array{Float64}(undef, npoly_q*4, N, npts)
-    ElementaryPDESolutions.fast_evaluate_with_jacobian!(vals, grad, x, PFE)
-    ElementaryPDESolutions.fast_evaluate!(vals2, x, PFE)
+    for i in 1:npts
+        ElementaryPDESolutions.fast_evaluate_with_jacobian!(view(vals, :, i), view(grad, :, :, i), x[i], PFE)
+        ElementaryPDESolutions.fast_evaluate!(view(vals2, :, i), x[i], PFE)
+    end
     @test 1 == 1
 end
 
@@ -498,7 +505,9 @@ end
     vals = Matrix{Rational{BigInt}}(undef, npoly_p, npts)
     vals2 = Matrix{Rational{BigInt}}(undef, npoly_p, npts)
     grad = Array{Rational{BigInt}}(undef, npoly_p, N, npts)
-    ElementaryPDESolutions.fast_evaluate_with_jacobian!(vals, grad, x, PFE)
-    ElementaryPDESolutions.fast_evaluate!(vals2, x, PFE)
+    for i in 1:npts
+        ElementaryPDESolutions.fast_evaluate_with_jacobian!(view(vals, :, i), view(grad, :, :, i), x[i], PFE)
+        ElementaryPDESolutions.fast_evaluate!(view(vals2, :, i), x[i], PFE)
+    end
     @test 1 == 1
 end
