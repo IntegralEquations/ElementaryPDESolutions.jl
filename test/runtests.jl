@@ -3,7 +3,8 @@ using DynamicPolynomials
 using ElementaryPDESolutions
 using StaticArrays
 using Test
-using ElementaryPDESolutions: laplacian, divergence, gradient, curl, convert_coefs, Polynomial
+using ElementaryPDESolutions: laplacian, divergence, gradient, curl, convert_coefs,
+                              Polynomial
 using Aqua
 
 # run aqua tests. We disable `unbound_args`` because otherwise signatures like
@@ -366,16 +367,17 @@ end
     for i in 1:npts
         x[i] = rand(3)
     end
-    
+
     P = ElementaryPDESolutions.Polynomial((3, 1, 4) => 1)
     SPFE = ElementaryPDESolutions.assemble_fastevaluator(P, Float64)
-    
-    vals  = Vector{Float64}(undef, npts)
+
+    vals = Vector{Float64}(undef, npts)
     vals2 = Vector{Float64}(undef, npts)
-    grad  = Matrix{Float64}(undef, N, npts)
+    grad = Matrix{Float64}(undef, N, npts)
     for i in 1:npts
         ElementaryPDESolutions.fast_evaluate!(view(vals, i), x[i], SPFE)
-        ElementaryPDESolutions.fast_evaluate_with_gradient!(view(vals2, i), view(grad, :, i), x[i], SPFE)
+        ElementaryPDESolutions.fast_evaluate_with_gradient!(view(vals2, i),
+                                                            view(grad, :, i), x[i], SPFE)
     end
     @test 1 == 1
 end
@@ -388,14 +390,12 @@ end
         x[i] = rand(N)
     end
 
-    p = [
-        ElementaryPDESolutions.Polynomial((3, 1, 4) => 1),
+    p = [ElementaryPDESolutions.Polynomial((3, 1, 4) => 1),
          ElementaryPDESolutions.Polynomial((1, 2, 3) => 1),
          ElementaryPDESolutions.Polynomial((1, 3, 1) => 1),
-         ElementaryPDESolutions.Polynomial((1, 3, 2) => 1)
-         ]
+         ElementaryPDESolutions.Polynomial((1, 3, 2) => 1)]
     npoly_p = length(p)
-    P = Vector{ElementaryPDESolutions.Polynomial{N, Float64}}(undef, npoly_p)
+    P = Vector{ElementaryPDESolutions.Polynomial{N,Float64}}(undef, npoly_p)
     for i in 1:npoly_p
         Pi = ElementaryPDESolutions.solve_laplace(p[i])
         P[i] = ElementaryPDESolutions.convert_coefs(Pi, Float64)
@@ -406,7 +406,8 @@ end
     vals2 = Matrix{Float64}(undef, npoly_p, npts)
     grad = Array{Float64}(undef, npoly_p, N, npts)
     for i in 1:npts
-        ElementaryPDESolutions.fast_evaluate_with_jacobian!(view(vals, :, i), view(grad, :, :, i), x[i], PFE)
+        ElementaryPDESolutions.fast_evaluate_with_jacobian!(view(vals, :, i),
+                                                            view(grad, :, :, i), x[i], PFE)
         ElementaryPDESolutions.fast_evaluate!(view(vals2, :, i), x[i], PFE)
     end
     @test 1 == 1
@@ -421,60 +422,51 @@ end
     end
 
     # Stokes vector of (U,p) Polynomial s1olution Tuples
-    q = [
-        (ElementaryPDESolutions.Polynomial((1,2,1) => 1.0),
-         ElementaryPDESolutions.Polynomial((2,1,1) => 2.0),
-         ElementaryPDESolutions.Polynomial((1,2,2) => 3.0)),
-
-        (ElementaryPDESolutions.Polynomial((2,1,4) => 8.0),
-         ElementaryPDESolutions.Polynomial((1,3,3) => 5.0),
-         ElementaryPDESolutions.Polynomial((1,5,1) => 2.0)),
-
-        (ElementaryPDESolutions.Polynomial((4,3,2) => 1.0),
-         ElementaryPDESolutions.Polynomial((0,0,9) => 5.0),
-         ElementaryPDESolutions.Polynomial((3,3,3) => 4.0)),
-    ]
+    q = [(ElementaryPDESolutions.Polynomial((1, 2, 1) => 1.0),
+          ElementaryPDESolutions.Polynomial((2, 1, 1) => 2.0),
+          ElementaryPDESolutions.Polynomial((1, 2, 2) => 3.0)),
+         (ElementaryPDESolutions.Polynomial((2, 1, 4) => 8.0),
+          ElementaryPDESolutions.Polynomial((1, 3, 3) => 5.0),
+          ElementaryPDESolutions.Polynomial((1, 5, 1) => 2.0)),
+         (ElementaryPDESolutions.Polynomial((4, 3, 2) => 1.0),
+          ElementaryPDESolutions.Polynomial((0, 0, 9) => 5.0),
+          ElementaryPDESolutions.Polynomial((3, 3, 3) => 4.0))]
     npoly_q = length(q)
-    
+
     # We compute polynomial solutions of vector PDE problems by flattening and
     # packing into one honkin' vector; unpack responsibly.
-    UP_tuplevector = Vector{
-        Tuple{
-            # velocity U
-              Tuple{ElementaryPDESolutions.Polynomial{N, Float64},
-                    ElementaryPDESolutions.Polynomial{N, Float64},
-                    ElementaryPDESolutions.Polynomial{N, Float64}},
+    UP_tuplevector = Vector{Tuple{
+                                  # velocity U
+                                  Tuple{ElementaryPDESolutions.Polynomial{N,Float64},
+                                        ElementaryPDESolutions.Polynomial{N,Float64},
+                                        ElementaryPDESolutions.Polynomial{N,Float64}},
 
-            # pressure P
-              ElementaryPDESolutions.Polynomial{N, Float64}
-        }
-    }(undef, npoly_q)
+                                  # pressure P
+                                  ElementaryPDESolutions.Polynomial{N,Float64}}}(undef,
+                                                                                 npoly_q)
     for i in 1:npoly_q
         UP = ElementaryPDESolutions.solve_stokes(q[i])
-        UP_tuplevector[i] = (
-            (
-                ElementaryPDESolutions.convert_coefs(UP[1][1], Float64),
-                ElementaryPDESolutions.convert_coefs(UP[1][2], Float64),
-                ElementaryPDESolutions.convert_coefs(UP[1][3], Float64)
-            ),
-                ElementaryPDESolutions.convert_coefs(UP[2], Float64),
-        )
+        UP_tuplevector[i] = ((ElementaryPDESolutions.convert_coefs(UP[1][1], Float64),
+                              ElementaryPDESolutions.convert_coefs(UP[1][2], Float64),
+                              ElementaryPDESolutions.convert_coefs(UP[1][3], Float64)),
+                             ElementaryPDESolutions.convert_coefs(UP[2], Float64))
     end
 
-    UP_flatvector = Vector{ElementaryPDESolutions.Polynomial{N, Float64}}(undef, npoly_q*4)
+    UP_flatvector = Vector{ElementaryPDESolutions.Polynomial{N,Float64}}(undef, npoly_q * 4)
     for i in 1:npoly_q
-        UP_flatvector[4*(i-1) + 1] = UP_tuplevector[i][1][1]
-        UP_flatvector[4*(i-1) + 2] = UP_tuplevector[i][1][2]
-        UP_flatvector[4*(i-1) + 3] = UP_tuplevector[i][1][3]
-        UP_flatvector[4*(i-1) + 4] = UP_tuplevector[i][2]
+        UP_flatvector[4 * (i - 1) + 1] = UP_tuplevector[i][1][1]
+        UP_flatvector[4 * (i - 1) + 2] = UP_tuplevector[i][1][2]
+        UP_flatvector[4 * (i - 1) + 3] = UP_tuplevector[i][1][3]
+        UP_flatvector[4 * (i - 1) + 4] = UP_tuplevector[i][2]
     end
     PFE = ElementaryPDESolutions.assemble_fastevaluator(UP_flatvector, Float64)
 
-    vals = Matrix{Float64}(undef, npoly_q*4, npts)
-    vals2 = Matrix{Float64}(undef, npoly_q*4, npts)
-    grad = Array{Float64}(undef, npoly_q*4, N, npts)
+    vals = Matrix{Float64}(undef, npoly_q * 4, npts)
+    vals2 = Matrix{Float64}(undef, npoly_q * 4, npts)
+    grad = Array{Float64}(undef, npoly_q * 4, N, npts)
     for i in 1:npts
-        ElementaryPDESolutions.fast_evaluate_with_jacobian!(view(vals, :, i), view(grad, :, :, i), x[i], PFE)
+        ElementaryPDESolutions.fast_evaluate_with_jacobian!(view(vals, :, i),
+                                                            view(grad, :, :, i), x[i], PFE)
         ElementaryPDESolutions.fast_evaluate!(view(vals2, :, i), x[i], PFE)
     end
     @test 1 == 1
@@ -485,17 +477,15 @@ end
     npts = 10
     x = Vector{Vector{Rational{BigInt}}}(undef, npts)
     for i in 1:npts
-        x[i] = [i//(i+1), (i+1)//(i+2), (i+3)//(i+2)]
+        x[i] = [i // (i + 1), (i + 1) // (i + 2), (i + 3) // (i + 2)]
     end
 
-    p = [
-        ElementaryPDESolutions.Polynomial((3, 1, 4) => 1//1),
-         ElementaryPDESolutions.Polynomial((1, 2, 3) => 1//1),
-         ElementaryPDESolutions.Polynomial((1, 3, 1) => 1//1),
-         ElementaryPDESolutions.Polynomial((1, 3, 2) => 1//1)
-         ]
+    p = [ElementaryPDESolutions.Polynomial((3, 1, 4) => 1 // 1),
+         ElementaryPDESolutions.Polynomial((1, 2, 3) => 1 // 1),
+         ElementaryPDESolutions.Polynomial((1, 3, 1) => 1 // 1),
+         ElementaryPDESolutions.Polynomial((1, 3, 2) => 1 // 1)]
     npoly_p = length(p)
-    P = Vector{ElementaryPDESolutions.Polynomial{N, Rational{BigInt}}}(undef, npoly_p)
+    P = Vector{ElementaryPDESolutions.Polynomial{N,Rational{BigInt}}}(undef, npoly_p)
     for i in 1:npoly_p
         Pi = ElementaryPDESolutions.solve_laplace(p[i])
         P[i] = Pi
@@ -506,7 +496,8 @@ end
     vals2 = Matrix{Rational{BigInt}}(undef, npoly_p, npts)
     grad = Array{Rational{BigInt}}(undef, npoly_p, N, npts)
     for i in 1:npts
-        ElementaryPDESolutions.fast_evaluate_with_jacobian!(view(vals, :, i), view(grad, :, :, i), x[i], PFE)
+        ElementaryPDESolutions.fast_evaluate_with_jacobian!(view(vals, :, i),
+                                                            view(grad, :, :, i), x[i], PFE)
         ElementaryPDESolutions.fast_evaluate!(view(vals2, :, i), x[i], PFE)
     end
     @test 1 == 1
