@@ -29,6 +29,10 @@ Aqua.test_all(ElementaryPDESolutions; unbound_args=false)
     x, y = 1.2, -0.4
     @test p(x, y) == p((x, y)) == p([x, y]) == p(SVector(x, y))
 
+    # test evaluation of tuple of polynomials
+    P = (p, 3 * p)
+    @test all(@inferred(P(x)) .== (p(x), 3 * p(x)))
+
     @test ElementaryPDESolutions.degree(p1) == 0
     @test ElementaryPDESolutions.degree(Polynomial((2, 0) => 1)) == 2
     @test ElementaryPDESolutions.degree(Polynomial((2, 2, 3) => 1)) == 7

@@ -7,7 +7,12 @@ using LinearAlgebra
 A polynomial in `N` variables with coefficients of type `T`.
 
 The functor interface is implemented, so that `p(x)` evaluates the polynomial.
-For performance reasons, `x` is expected to be a `Tuple`.
+
+If `P = (p₁, p₂, ..., pₙ)` is a tuple of polynomials, then `P(x)` returns the
+tuple `(p₁(x), p₂(x), ..., pₙ(x))`.
+
+For performance reasons, it is better to pass a statically sized coordiante `x`
+(e.g. an `NTuple` or an `SVector`) to the functor interface.
 
 # Examples
 
@@ -57,6 +62,10 @@ function (p::Polynomial{N,T})(x) where {N,T}
     return sum(c * prod(x .^ θ) for (θ, c) in p.order2coeff; init=zero(T))
 end
 (p::Polynomial)(x...) = p(x) # so that e.g. p(x,y) works
+
+function (Ps::NTuple{N,<:Polynomial})(x) where {N}
+    return ntuple(n -> Ps[n](x), N)
+end
 
 """
     is_homogeneous(p::Polynomial)
