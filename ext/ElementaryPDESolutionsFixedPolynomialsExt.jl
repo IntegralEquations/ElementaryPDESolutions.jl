@@ -5,50 +5,62 @@ import DynamicPolynomials: @polyvar
 using FixedPolynomials: FixedPolynomials
 
 function __init__()
-    @info "Loading ElementaryPDESolutions.jl FixedPolynomials extension"
+    return @info "Loading ElementaryPDESolutions.jl FixedPolynomials extension"
 end
 
-struct VecPolyFastEvaluator{N,S,T}
+struct VecPolyFastEvaluator{N, S, T}
     N::Int64
     PolSystem::FixedPolynomials.System{S}
-    cfg::FixedPolynomials.JacobianConfig{T,S}
+    cfg::FixedPolynomials.JacobianConfig{T, S}
 end
 
-struct ScaPolyFastEvaluator{N,T}
+struct ScaPolyFastEvaluator{N, T}
     N::Int64
     Pol::FixedPolynomials.Polynomial{T}
-    r::FixedPolynomials.GradientDiffResult{T,Vector{T}}
+    r::FixedPolynomials.GradientDiffResult{T, Vector{T}}
     cfg::FixedPolynomials.GradientConfig{T}
 end
 
-function VecPolyFastEvaluator(N, PolSystem::FixedPolynomials.System{S},
-                              cfg::FixedPolynomials.JacobianConfig{T,S}) where {S,T}
-    return VecPolyFastEvaluator{N,S,T}(N, PolSystem, cfg)
+function VecPolyFastEvaluator(
+        N, PolSystem::FixedPolynomials.System{S},
+        cfg::FixedPolynomials.JacobianConfig{T, S}
+    ) where {S, T}
+    return VecPolyFastEvaluator{N, S, T}(N, PolSystem, cfg)
 end
 
-function ScaPolyFastEvaluator(N, Pol, r::FixedPolynomials.GradientDiffResult{T},
-                              cfg::FixedPolynomials.GradientConfig{T}) where {T}
-    return ScaPolyFastEvaluator{N,T}(N, Pol, r, cfg)
+function ScaPolyFastEvaluator(
+        N, Pol, r::FixedPolynomials.GradientDiffResult{T},
+        cfg::FixedPolynomials.GradientConfig{T}
+    ) where {T}
+    return ScaPolyFastEvaluator{N, T}(N, Pol, r, cfg)
 end
 
-Base.length(VPFE::VecPolyFastEvaluator{N,S,T}) where {N,S,T} = length(VPFE.PolSystem)
+Base.length(VPFE::VecPolyFastEvaluator{N, S, T}) where {N, S, T} = length(VPFE.PolSystem)
 
 """
     fast_evaluate_with_jacobian!(vals::AbstractArray{S}, grad::AbstractArray{S}, x::AbstractVector{S}, VPFE::VecPolyFastEvaluator{N,S,T})
 
 Evaluate an M-length vector of `N`-variate polynomials `VPFE` at point `x`, with values placed in the vector `vals` and its gradient placed in the array `grad` of size MxN.
 """
-function ElementaryPDESolutions.fast_evaluate_with_jacobian!(vals::AbstractArray{S},
-                                                             grad::AbstractArray{S},
-                                                             x::AbstractVector{S},
-                                                             VPFE::VecPolyFastEvaluator{N,S,
-                                                                                        T}) where {N,
-                                                                                                   S,
-                                                                                                   T}
+function ElementaryPDESolutions.fast_evaluate_with_jacobian!(
+        vals::AbstractArray{S},
+        grad::AbstractArray{S},
+        x::AbstractVector{S},
+        VPFE::VecPolyFastEvaluator{
+            N, S,
+            T,
+        }
+    ) where {
+        N,
+        S,
+        T,
+    }
     @assert length(vals) == length(VPFE.PolSystem)
     @assert size(grad) == (length(VPFE.PolSystem), N)
-    return FixedPolynomials.evaluate_and_jacobian!(vals, grad, VPFE.PolSystem, x,
-                                                   VPFE.cfg)
+    return FixedPolynomials.evaluate_and_jacobian!(
+        vals, grad, VPFE.PolSystem, x,
+        VPFE.cfg
+    )
 end
 
 """
@@ -56,13 +68,19 @@ end
 
 Evaluate an `N`-variate polynomial `SPFE` at point `x`, with values placed in the vector `vals` and its gradient placed in the array `grad`.
 """
-function ElementaryPDESolutions.fast_evaluate_with_gradient!(vals::AbstractArray{S},
-                                                             grad::AbstractArray{S},
-                                                             x::AbstractVector{S},
-                                                             SPFE::ScaPolyFastEvaluator{N,
-                                                                                        T}) where {N,
-                                                                                                   S,
-                                                                                                   T}
+function ElementaryPDESolutions.fast_evaluate_with_gradient!(
+        vals::AbstractArray{S},
+        grad::AbstractArray{S},
+        x::AbstractVector{S},
+        SPFE::ScaPolyFastEvaluator{
+            N,
+            T,
+        }
+    ) where {
+        N,
+        S,
+        T,
+    }
     @assert SPFE.N == length(x)
     @assert length(grad) == N
     FixedPolynomials.gradient!(SPFE.r, SPFE.Pol, x, SPFE.cfg)
@@ -75,10 +93,14 @@ end
 
 Evaluate a vector of polynomials `VPFE` at point `x`, with values placed in the vector `vals`.
 """
-function ElementaryPDESolutions.fast_evaluate!(vals::AbstractArray{S}, x::AbstractVector{S},
-                                               VPFE::VecPolyFastEvaluator{N,S,T}) where {N,
-                                                                                         S,
-                                                                                         T}
+function ElementaryPDESolutions.fast_evaluate!(
+        vals::AbstractArray{S}, x::AbstractVector{S},
+        VPFE::VecPolyFastEvaluator{N, S, T}
+    ) where {
+        N,
+        S,
+        T,
+    }
     @assert VPFE.N == length(x)
     @assert length(vals) == length(VPFE.PolSystem)
     return FixedPolynomials.evaluate!(vals, VPFE.PolSystem, x, VPFE.cfg)
@@ -89,9 +111,13 @@ end
 
 Evaluate polynomial `SPFE` at point `x`, with value placed in `val`.
 """
-function ElementaryPDESolutions.fast_evaluate!(val::AbstractArray{S}, x::AbstractVector{S},
-                                               SPFE::ScaPolyFastEvaluator{N,T}) where {N,S,
-                                                                                       T}
+function ElementaryPDESolutions.fast_evaluate!(
+        val::AbstractArray{S}, x::AbstractVector{S},
+        SPFE::ScaPolyFastEvaluator{N, T}
+    ) where {
+        N, S,
+        T,
+    }
     @assert SPFE.N == length(x)
     return val = FixedPolynomials.evaluate(SPFE.Pol, x, SPFE.cfg)
 end
@@ -103,9 +129,15 @@ Perform precomputations for fast evaluation of a `Vector` of `N`-variate
 `Polynomial` of input type `S`, with coefficients of type T.  Return a
 `VecPolyFastEvaluator` object for online use.
 """
-function ElementaryPDESolutions.assemble_fastevaluator(Pols::Vector{ElementaryPDESolutions.Polynomial{N,
-                                                                                                      T}},
-                                                       ::Type{S}) where {N,S,T}
+function ElementaryPDESolutions.assemble_fastevaluator(
+        Pols::Vector{
+            ElementaryPDESolutions.Polynomial{
+                N,
+                T,
+            },
+        },
+        ::Type{S}
+    ) where {N, S, T}
     if N == 1
         @polyvar x
     elseif N == 2
@@ -132,8 +164,10 @@ function ElementaryPDESolutions.assemble_fastevaluator(Pols::Vector{ElementaryPD
         elseif N == 2
             PolArray[polind] = FixedPolynomials.Polynomial(exp_data, coeff_data, [:x, :y])
         else
-            PolArray[polind] = FixedPolynomials.Polynomial(exp_data, coeff_data,
-                                                           [:x, :y, :z])
+            PolArray[polind] = FixedPolynomials.Polynomial(
+                exp_data, coeff_data,
+                [:x, :y, :z]
+            )
         end
     end
     PolSystem = FixedPolynomials.System(PolArray)
@@ -147,9 +181,13 @@ end
 Perform precomputations for fast evaluation of a `Polynomial` on points of type `S`.
 Return a `ScaPolyFastEvaluator` object for online use.
 """
-function ElementaryPDESolutions.assemble_fastevaluator(Pol::ElementaryPDESolutions.Polynomial{N,
-                                                                                              T},
-                                                       ::Type{S}) where {N,S,T}
+function ElementaryPDESolutions.assemble_fastevaluator(
+        Pol::ElementaryPDESolutions.Polynomial{
+            N,
+            T,
+        },
+        ::Type{S}
+    ) where {N, S, T}
     if N == 1
         @polyvar x
     elseif N == 2

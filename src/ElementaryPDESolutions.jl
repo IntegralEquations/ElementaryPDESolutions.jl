@@ -35,26 +35,26 @@ julia> Polynomial((1,1,1)=>2)
 ```
 
 """
-struct Polynomial{N,T}
-    order2coeff::Dict{NTuple{N,Int},T}
+struct Polynomial{N, T}
+    order2coeff::Dict{NTuple{N, Int}, T}
 end
 
 # empty constructor
-Polynomial{N,T}() where {N,T} = Polynomial{N,T}(Dict{NTuple{N,Int},T}())
+Polynomial{N, T}() where {N, T} = Polynomial{N, T}(Dict{NTuple{N, Int}, T}())
 
 # construct a polynomial from a tuple of pairs
-Polynomial(t::NTuple{<:Any,Pair{NTuple{N,Int},T}}) where {N,T} = Polynomial{N,T}(Dict(t))
+Polynomial(t::NTuple{<:Any, Pair{NTuple{N, Int}, T}}) where {N, T} = Polynomial{N, T}(Dict(t))
 
 # construct a polynomial from a vector of pairs
-Polynomial(v::Vector{Pair{NTuple{N,Int},T}}) where {N,T} = Polynomial{N,T}(Dict(v))
+Polynomial(v::Vector{Pair{NTuple{N, Int}, T}}) where {N, T} = Polynomial{N, T}(Dict(v))
 
 # construct a polynomial from a single pair
-Polynomial(p::Pair{NTuple{N,Int},T}) where {N,T} = Polynomial{N,T}(Dict(p))
+Polynomial(p::Pair{NTuple{N, Int}, T}) where {N, T} = Polynomial{N, T}(Dict(p))
 
 # functor interface
-function (p::Polynomial{N,T})(x) where {N,T}
+function (p::Polynomial{N, T})(x) where {N, T}
     @assert length(x) == N "Expected input of length $N, got $(length(x))"
-    return sum(c * prod(x .^ θ) for (θ, c) in p.order2coeff; init=zero(T))
+    return sum(c * prod(x .^ θ) for (θ, c) in p.order2coeff; init = zero(T))
 end
 (p::Polynomial)(x...) = p(x) # so that e.g. p(x,y) works
 
@@ -64,7 +64,7 @@ end
 Return `true` if `p` is homogeneous, i.e. if all the monomials in `p` have the
 same degree.
 """
-function is_homogeneous(p::Polynomial{N,T}) where {N,T}
+function is_homogeneous(p::Polynomial{N, T}) where {N, T}
     return allequal(sum(θ) for θ in keys(p.order2coeff))
 end
 
@@ -78,7 +78,7 @@ end
 
 Drop all coefficients in `q` for which the `abs(p) ≤ tol`.
 """
-function drop_zeros!(q::Polynomial, tol=0)
+function drop_zeros!(q::Polynomial, tol = 0)
     for (k, v) in q.order2coeff
         if abs(v) ≤ tol
             delete!(q.order2coeff, k)
@@ -93,7 +93,7 @@ end
 Multiply a polynomial `p` by the polynomial `r^k`, where `r = |𝐱|` and `k` is an
 even positive integer.
 """
-function multiply_by_r(p::Polynomial{N,T}, k::Int) where {N,T}
+function multiply_by_r(p::Polynomial{N, T}, k::Int) where {N, T}
     @assert iseven(k)
     k == 0 && return p
     order2coeff = empty(p.order2coeff)
@@ -113,8 +113,10 @@ end
 Multiply a polynomial `p` by the polynomial `r_A^k`, where `r_A = |r^T A^{-1} r|`,
 r = (x_1, x_2, ..., x_n), and `k` is an even positive integer.
 """
-function multiply_by_anisotropic_r(A::AbstractMatrix{T}, p::Polynomial{N,T},
-                                   k::Int) where {N,T}
+function multiply_by_anisotropic_r(
+        A::AbstractMatrix{T}, p::Polynomial{N, T},
+        k::Int
+    ) where {N, T}
     @assert LinearAlgebra.checksquare(A) == N
     @assert iseven(k)
     # This slows us down, but prevents a degradation relative to Base.LinearAlgebra
@@ -142,8 +144,10 @@ end
 Multiply a polynomial `p` by the polynomial (β ⋅ 𝐫)ᵏ, 𝐫 = (x_1, x_2, ..., x_n),
 and `k` is a non-negative integer.
 """
-function multiply_by_anisotropic_β_r(β::AbstractVector, p::Polynomial{N,T},
-                                     k::Int) where {N,T}
+function multiply_by_anisotropic_β_r(
+        β::AbstractVector, p::Polynomial{N, T},
+        k::Int
+    ) where {N, T}
     @assert length(β) == N
     @assert k ≥ 0
     k == 0 && return p
@@ -162,7 +166,7 @@ end
 
 The largest degree of any monomial in `p`.
 """
-function degree(p::Polynomial{N,T}) where {N,T}
+function degree(p::Polynomial{N, T}) where {N, T}
     deg = 0
     for θ in keys(p.order2coeff)
         deg = max(deg, sum(θ))
@@ -170,9 +174,9 @@ function degree(p::Polynomial{N,T}) where {N,T}
     return deg
 end
 
-function Base.:+(p1::Polynomial{N,S}, p2::Polynomial{N,T}) where {N,S,T}
+function Base.:+(p1::Polynomial{N, S}, p2::Polynomial{N, T}) where {N, S, T}
     V = promote_type(S, T)
-    acc = Polynomial{N,V}()
+    acc = Polynomial{N, V}()
     # re-build the p1 elements in the promoted datatype; this is a bit wasteful..
     for (order, coeff) in p1.order2coeff
         acc.order2coeff[order] = coeff
@@ -196,17 +200,17 @@ function Base.:-(p::Polynomial)
     end
     return q
 end
-Base.:-(p1::Polynomial{N,S}, p2::Polynomial{N,T}) where {N,S,T} = p1 + (-p2)
+Base.:-(p1::Polynomial{N, S}, p2::Polynomial{N, T}) where {N, S, T} = p1 + (-p2)
 
-function Base.:(==)(p1::Polynomial{N}, p2::Polynomial{M}) where {N,M}
+function Base.:(==)(p1::Polynomial{N}, p2::Polynomial{M}) where {N, M}
     return N == M ? iszero(p1 - p2) : false
 end
 
 # multiply a polynomial by a scalar
-function Base.:*(c::Number, p::Polynomial{N,T}) where {N,T}
+function Base.:*(c::Number, p::Polynomial{N, T}) where {N, T}
     S = typeof(c)
     V = promote_type(S, T)
-    acc = Polynomial{N,V}()
+    acc = Polynomial{N, V}()
     for (order, coeff) in p.order2coeff
         acc.order2coeff[order] = c * coeff
     end
@@ -220,15 +224,15 @@ Base.:*(p::Polynomial, c::Number) = c * p
 Return a version of `p` where the coefficients have been converted to type `T`
 (is such a conversion is possible).
 """
-function convert_coefs(p::Polynomial{N,S}, ::Type{T}) where {N,S,T}
-    q = Polynomial{N,T}()
+function convert_coefs(p::Polynomial{N, S}, ::Type{T}) where {N, S, T}
+    q = Polynomial{N, T}()
     for (order, coeff) in p.order2coeff
         q.order2coeff[order] = T(coeff)
     end
     return q
 end
 
-function Base.convert(::Type{Polynomial{N,T}}, p::Polynomial{N,S}) where {N,T,S}
+function Base.convert(::Type{Polynomial{N, T}}, p::Polynomial{N, S}) where {N, T, S}
     return convert_coefs(p, T)
 end
 
@@ -237,7 +241,7 @@ end
 
 Differentiate `p` with respect to the `i`th variable.
 """
-function derivative(p::Polynomial{N,T}, d) where {N,T}
+function derivative(p::Polynomial{N, T}, d) where {N, T}
     @assert d ∈ 1:N
     order2coeff = empty(p.order2coeff)
     for (θ, c) in p.order2coeff
@@ -246,7 +250,7 @@ function derivative(p::Polynomial{N,T}, d) where {N,T}
         c′ = c * (θ[d])
         order2coeff[θ′] = get(order2coeff, θ′, zero(T)) + c′
     end
-    return Polynomial{N,T}(order2coeff)
+    return Polynomial{N, T}(order2coeff)
 end
 
 """
@@ -254,13 +258,13 @@ end
 
 Return an `N`-tuple of the derivatives of `p` with respect to each variable.
 """
-function gradient(p::Polynomial{N,T}) where {N,T}
-    ntuple(N) do d
+function gradient(p::Polynomial{N, T}) where {N, T}
+    return ntuple(N) do d
         return derivative(p, d)
     end
 end
 
-function laplacian(p::Polynomial{N,T}) where {N,T}
+function laplacian(p::Polynomial{N, T}) where {N, T}
     order2coeff = empty(p.order2coeff)
     for (θ, c) in p.order2coeff
         for d in 1:N
@@ -270,7 +274,7 @@ function laplacian(p::Polynomial{N,T}) where {N,T}
             order2coeff[θ′] = get(order2coeff, θ′, zero(T)) + c′
         end
     end
-    return Polynomial{N,T}(order2coeff)
+    return Polynomial{N, T}(order2coeff)
 end
 
 """
@@ -285,14 +289,14 @@ function anisotropic_laplacian(A::AbstractMatrix, p::Polynomial{N}) where {N}
     return Δp
 end
 
-function divergence(P::NTuple{N,Polynomial{N,T}}) where {N,T}
+function divergence(P::NTuple{N, Polynomial{N, T}}) where {N, T}
     return sum(derivative(P[i], i) for i in 1:N)
 end
 
-function curl(P::NTuple{N,Polynomial{N,T}}) where {N,T}
+function curl(P::NTuple{N, Polynomial{N, T}}) where {N, T}
     ∇P = gradient.(P)
     if N == 2
-        curlP = (Polynomial{N,T}(), Polynomial{N,T}(), ∇P[2][1] - ∇P[1][2])
+        curlP = (Polynomial{N, T}(), Polynomial{N, T}(), ∇P[2][1] - ∇P[1][2])
     elseif N == 3
         curlP = (∇P[3][2] - ∇P[2][3], ∇P[1][3] - ∇P[3][1], ∇P[2][1] - ∇P[1][2])
     else
@@ -302,8 +306,8 @@ function curl(P::NTuple{N,Polynomial{N,T}}) where {N,T}
 end
 
 # general show
-function Base.show(io::IO, p::Polynomial{N,T}) where {N,T}
-    order2coeff = sort(collect(p.order2coeff); by=x -> sum(x[1]))
+function Base.show(io::IO, p::Polynomial{N, T}) where {N, T}
+    order2coeff = sort(collect(p.order2coeff); by = x -> sum(x[1]))
     isempty(order2coeff) && return print(io, zero(T))
     for (order, coeff) in order2coeff
         # first term is special case
@@ -315,11 +319,12 @@ function Base.show(io::IO, p::Polynomial{N,T}) where {N,T}
             _print_variable(io, i, o)
         end
     end
+    return
 end
 
 # adapt show to reals
-function Base.show(io::IO, p::Polynomial{N,T}) where {N,T<:Real}
-    order2coeff = sort(collect(p.order2coeff); by=x -> sum(x[1]))
+function Base.show(io::IO, p::Polynomial{N, T}) where {N, T <: Real}
+    order2coeff = sort(collect(p.order2coeff); by = x -> sum(x[1]))
     isempty(order2coeff) && return print(io, "0")
     for (order, coeff) in order2coeff
         # first term is special case
@@ -346,11 +351,12 @@ function Base.show(io::IO, p::Polynomial{N,T}) where {N,T<:Real}
             _print_variable(io, i, o)
         end
     end
+    return
 end
 
 # adapt show to complex
-function Base.show(io::IO, p::Polynomial{N,T}) where {N,T<:Complex}
-    order2coeff = sort(collect(p.order2coeff); by=x -> sum(x[1]))
+function Base.show(io::IO, p::Polynomial{N, T}) where {N, T <: Complex}
+    order2coeff = sort(collect(p.order2coeff); by = x -> sum(x[1]))
     isempty(order2coeff) && return print(io, "0")
     for (order, coeff) in order2coeff
         # first term is special case
@@ -374,11 +380,12 @@ function Base.show(io::IO, p::Polynomial{N,T}) where {N,T<:Complex}
             _print_variable(io, i, o)
         end
     end
+    return
 end
 
 # verbose code for pretty printing of monomials using unicode
 function _print_variable(io, i, p)
-    if i == 1
+    return if i == 1
         if p == 0
             print(io, "")
         elseif p == 1
@@ -481,7 +488,7 @@ function solve_helmholtz(Q::Polynomial, k²)
     end
     return 1 / k² * P
 end
-solve_helmholtz(Q::Polynomial; k=1) = solve_helmholtz(Q, k^2)
+solve_helmholtz(Q::Polynomial; k = 1) = solve_helmholtz(Q, k^2)
 
 """
     solve_laplace(Q::Polynomial)
@@ -498,7 +505,7 @@ julia> P = solve_laplace(Q)
 0.125xy² + 0.125x³
 ```
 """
-function solve_laplace(Q::Polynomial{N,T}) where {N,T}
+function solve_laplace(Q::Polynomial{N, T}) where {N, T}
     @assert is_homogeneous(Q) "source term `Q` must be a homogeneous polynomial"
     n = degree(Q)
     γ = (k, p) -> 2 * (k + 1) * (2k + 2p + N) # γₖᵖ
@@ -534,7 +541,7 @@ P = solve_anisotropic_laplace(A, Q)
 -3//400x⁴ + 11//100x³y + 11//150xy³ - 2//25x²y² - 1//300y⁴
 ```
 """
-function solve_anisotropic_laplace(A::AbstractMatrix{T}, Q::Polynomial{N,T}) where {N,T}
+function solve_anisotropic_laplace(A::AbstractMatrix{T}, Q::Polynomial{N, T}) where {N, T}
     @assert LinearAlgebra.checksquare(A) == N
     @assert A == transpose(A) "anisotropic tensor must be symmetric"
     @assert is_homogeneous(Q) "source term `Q` must be a homogeneous polynomial"
@@ -574,13 +581,15 @@ P = solve_anisotropic_advect_diffuse(A, β, Q)
 -14//25y - 28//25x + 16//25xy + 9//25y² - 4//25x²
 ```
 """
-function solve_anisotropic_advect_diffuse(A::AbstractMatrix, β::AbstractVector,
-                                          Q::Polynomial{N,T}) where {N,T}
+function solve_anisotropic_advect_diffuse(
+        A::AbstractMatrix, β::AbstractVector,
+        Q::Polynomial{N, T}
+    ) where {N, T}
     @assert length(β) == N "β must be dimensionally consistent with Q"
 
     n = degree(Q)
     uᵢ = solve_anisotropic_advect(β, deepcopy(Q))
-    P = Polynomial{N,T}() + uᵢ
+    P = Polynomial{N, T}() + uᵢ
     for i in (n - 1):-1:0
         uᵢ = solve_anisotropic_advect(β, -anisotropic_laplacian(A, uᵢ))
         P = P + uᵢ
@@ -606,7 +615,7 @@ P = solve_anisotropic_advect(β, Q)
 2//5y + 4//5x
 ```
 """
-function solve_anisotropic_advect(β::AbstractVector, Q::Polynomial{N,T}) where {N,T}
+function solve_anisotropic_advect(β::AbstractVector, Q::Polynomial{N, T}) where {N, T}
     @assert length(β) == N "β must be dimensionally consistent with Q"
 
     n = degree(Q)
@@ -659,7 +668,7 @@ julia> P = solve_stokes(Q;μ=Rational(1))
 ((-1//8xy + 1//16xy² + 1//48x³, 3//16x² + 1//16y² - 1//48y³ - 1//16x²y), -1//2y - 3//8x² - 1//8y²)
 ```
 """
-function solve_stokes(Q::NTuple{N,Polynomial{N,T}}; μ=1 // 1) where {N,T}
+function solve_stokes(Q::NTuple{N, Polynomial{N, T}}; μ = 1 // 1) where {N, T}
     # u = Δg - ∇ (∇ ⋅ g), p = -μ Δ (∇ ⋅ g), where g solves μΔΔg = Q
     g = 1 / μ .* map(q -> solve_bilaplace(q), Q)
     h = -divergence(g)
@@ -696,7 +705,7 @@ julia> U, P = solve_brinkman(Q; Re=Rational(1), α=Rational(1))
 ((0//1y + xy + 5//24y³ - 5//8x²y, 0//1 + 4//1x + 1//2x² - 1//2y² + 5//8xy² + 11//24x³), -7//6y³ - 1//2x²y - 11//24x³y - 5//24xy³)
 ```
 """
-function solve_brinkman(Q::NTuple{N,Polynomial{N,T}}; Re=1 // 1, α=1 // 1) where {N,T}
+function solve_brinkman(Q::NTuple{N, Polynomial{N, T}}; Re = 1 // 1, α = 1 // 1) where {N, T}
     g = brinkman_component_solver.(Q, α)
     divg = divergence(g)
     v = laplacian.(g) .- gradient(divg)
@@ -716,11 +725,11 @@ Compute a polynomial vector potential `P` satisfying the auxiliary vector PDE.
 
 for the Brinkman (linearized Navier-Stokes) system.
 """
-function brinkman_component_solver(Q::Polynomial{N,T}, α) where {N,T}
+function brinkman_component_solver(Q::Polynomial{N, T}, α) where {N, T}
     n = degree(Q)
     m = cld(n + 1, 4) - 1 # q = 2, r = 6 in paper
     uᵢ = -1 / α^4 * solve_laplace(deepcopy(Q))
-    P = Polynomial{N,T}() + uᵢ
+    P = Polynomial{N, T}() + uᵢ
     for _ in 0:(m - 1)
         uᵢ = -1 / α^4 * solve_laplace(-laplacian(laplacian(laplacian(uᵢ))))
         P = P + uᵢ
@@ -744,8 +753,10 @@ julia> P = solve_elastodynamics(Q;μ=1)
 (-6//1y + x²y, -3//1x)
 ```
 """
-function solve_elastodynamics(Q::NTuple{N,Polynomial{N,T}}; ρ=1 // 1, μ=1 // 1, ν=1 // 4,
-                              ω=1 // 1) where {N,T}
+function solve_elastodynamics(
+        Q::NTuple{N, Polynomial{N, T}}; ρ = 1 // 1, μ = 1 // 1, ν = 1 // 4,
+        ω = 1 // 1
+    ) where {N, T}
     k₁² = ω^2 / (2 * μ * (1 - ν) / (ρ * (1 - 2ν)))
     k₂² = ω^2 * ρ / μ
     g = -1 / (2 * μ * (1 - ν)) .* map(q -> solve_helmholtz(solve_helmholtz(q, k₁²), k₂²), Q)
@@ -768,7 +779,7 @@ julia> P = solve_elastostatic(Q;ν=1//2)
 (-1//8xy + 1//480x⁵ + 1//32x³y² + 1//24xy⁴, 3//16x² + 1//16y² - 1//120y⁵ - 1//96x⁴y - 1//32x²y³)
 ```
 """
-function solve_elastostatic(Q::NTuple{N,Polynomial{N,T}}; μ=1, ν=0) where {N,T}
+function solve_elastostatic(Q::NTuple{N, Polynomial{N, T}}; μ = 1, ν = 0) where {N, T}
     g = 1 / (2 * μ * (1 - ν)) .* map(q -> solve_bilaplace(q), Q)
     u = 2(1 - ν) .* laplacian.(g) .- gradient(divergence(g))
     return u
@@ -814,7 +825,7 @@ julia> H
 (y, 2.0 + z - y², 2.0yz)
 ```
 """
-function solve_maxwell(J::NTuple{3,Polynomial{3,T}}; ϵ=1, μ=1, ω=1) where {T}
+function solve_maxwell(J::NTuple{3, Polynomial{3, T}}; ϵ = 1, μ = 1, ω = 1) where {T}
     ρ = -im / ω * divergence(J)
     k² = ω^2 * ϵ * μ
     A = -μ .* map(j -> solve_helmholtz(j, k²), J)
@@ -841,22 +852,22 @@ function fast_evaluate!(args...; kwargs...)
 end
 
 export
-       Polynomial,
-       convert_coefs,
-       assemble_fastevaluator,
-       fast_evaluate_with_jacobian!,
-       fast_evaluate_with_gradient!,
-       fast_evaluate!,
-       solve_helmholtz,
-       solve_laplace,
-       solve_anisotropic_laplace,
-       solve_anisotropic_advect,
-       solve_anisotropic_advect_diffuse,
-       solve_bilaplace,
-       solve_stokes,
-       solve_brinkman,
-       solve_elastostatic,
-       solve_elastodynamics,
-       solve_maxwell
+    Polynomial,
+    convert_coefs,
+    assemble_fastevaluator,
+    fast_evaluate_with_jacobian!,
+    fast_evaluate_with_gradient!,
+    fast_evaluate!,
+    solve_helmholtz,
+    solve_laplace,
+    solve_anisotropic_laplace,
+    solve_anisotropic_advect,
+    solve_anisotropic_advect_diffuse,
+    solve_bilaplace,
+    solve_stokes,
+    solve_brinkman,
+    solve_elastostatic,
+    solve_elastodynamics,
+    solve_maxwell
 
 end # module (Polynomials)
