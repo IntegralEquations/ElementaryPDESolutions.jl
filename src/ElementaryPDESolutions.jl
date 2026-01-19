@@ -513,7 +513,6 @@ function solve_laplace(Q::Polynomial{N, T}) where {N, T}
     @assert is_homogeneous(Q) "source term `Q` must be a homogeneous polynomial"
     n = degree(Q)
     γ = (k, p) -> 2 * (k + 1) * (2k + 2p + N) # γₖᵖ
-    # Note: convert to big for the intermediate computations, then back to T at the end
     cₖ = big(1) // γ(0, n) # c₀
     P = cₖ * multiply_by_r(deepcopy(Q), 2)
     ΔᵏQ = deepcopy(Q)
@@ -524,7 +523,7 @@ function solve_laplace(Q::Polynomial{N, T}) where {N, T}
         ΔP = cₖ * (multiply_by_r(ΔᵏQ, 2k + 2))
         P = P + ΔP
     end
-    return convert_coefs(P, T)
+    return P
 end
 
 """
@@ -563,7 +562,7 @@ function solve_anisotropic_laplace(A::AbstractMatrix{T}, Q::Polynomial{N, T}) wh
         ΔP = cₖ * (multiply_by_anisotropic_r(A, ΔᵏQ, 2k + 2))
         P = P + ΔP
     end
-    return convert_coefs(P, T)
+    return P
 end
 
 """
@@ -633,7 +632,7 @@ function solve_anisotropic_advect(β::AbstractVector, Q::Polynomial{N, T}) where
         betagradellq = sum(β[i] * gradient(betagradellq)[i] for i in 1:N)
         P = P + cₗ * multiply_by_anisotropic_β_r(β, betagradellq, l + 1)
     end
-    return (1 / β2) * convert_coefs(P, T)
+    return (1 / β2) * P
 end
 
 """
